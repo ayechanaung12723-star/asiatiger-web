@@ -1,0 +1,23 @@
+<!-- index.html sample -->
+<!doctype html>
+<html><head><meta charset="utf-8"><title>AsiaTiger</title></head>
+<body>
+  <h1>AsiaTiger Demo</h1>
+  <input id="tgid" value="TEST_TGID">
+  <input id="bet" type="number" value="100">
+  <button id="spin">Spin</button>
+  <pre id="out">—</pre>
+<script>
+  const API_BASE = 'https://REPLACE_WITH_TUNNEL_URL';
+  document.getElementById('spin').addEventListener('click', async () => {
+    const tgid = document.getElementById('tgid').value;
+    const bet = Number(document.getElementById('bet').value);
+    const res = await fetch(API_BASE + '/spin', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json','x-demo-key':'demo_secret'},
+      body: JSON.stringify({ tgid, game:'fishing-mini', bet, clientSeed:'web' })
+    });
+    document.getElementById('out').textContent = JSON.stringify(await res.json(), null, 2);
+  });
+</script>
+</body></html>
