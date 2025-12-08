@@ -7,77 +7,80 @@
   <link rel="icon" href="logo.png" />
   <style>
     :root{--bg:#0f1724;--card:#0b1220;--accent:#ffb86b;--muted:#9aa4b2;color-scheme:dark}
-    html,body{height:100%;margin:0;font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,Arial;background:linear-gradient(180deg,#071021 0%,#071827 100%);color:#e6eef6}
+    html,body{height:100%;margin:0;font-family:Inter,system-ui,"Segoe UI",Roboto,Arial;background:#071827;color:#e6eef6}
     .container{max-width:1100px;margin:36px auto;padding:24px}
     header{display:flex;align-items:center;gap:16px}
-    header img{width:64px;height:64px;border-radius:8px;object-fit:cover}
-    header h1{font-size:1.6rem;margin:0}
+    header img{width:64px;height:64px;border-radius:8px}
+    header h1{margin:0;font-size:1.6rem}
     nav{margin-top:12px;display:flex;gap:12px;flex-wrap:wrap}
-    .btn{background:transparent;border:1px solid rgba(255,255,255,0.06);padding:8px 12px;border-radius:8px;color:var(--accent);text-decoration:none;font-weight:600}
+    .btn{background:transparent;border:1px solid rgba(255,255,255,0.06);padding:8px 12px;border-radius:8px;
+      color:var(--accent);text-decoration:none;font-weight:600;cursor:pointer}
     .games-list{display:flex;flex-direction:column;gap:8px;margin-top:12px}
-    .balance{background:#071827;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.03)}
+    .balanceBox{background:#0b1220;padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,0.05)}
   </style>
 </head>
+
 <body>
   <div class="container">
+
+    <!-- HEADER -->
     <header>
-      <img src="logo.png" alt="AsiaTiger logo" />
+      <img src="logo.png" />
       <div>
         <h1>AsiaTiger</h1>
-        <div style="color:var(--muted)">Play web games • Fast deploy • Built with JavaScript</div>
+        <div style="color:var(--muted)">Free Web Game Demo</div>
       </div>
+
       <div style="margin-left:auto">
         <a id="loginLink" class="btn" href="login.html">Login</a>
         <button id="logoutBtn" class="btn" style="display:none">Logout</button>
       </div>
     </header>
 
+    <!-- NAV -->
     <nav>
       <a class="btn" href="games.html">All Games</a>
       <a class="btn" href="stats.html">Stats</a>
       <a class="btn" href="wallet.html">Wallet</a>
-      <a class="btn" href="logs.html">Logs</a>
     </nav>
 
+    <!-- MAIN CONTENT -->
     <main>
       <section style="margin-top:20px">
-        <div style="background:var(--card);padding:14px;border-radius:10px">
+        <div style="background:var(--card);padding:14px;border-radius:10px;">
           <h3>Featured Games</h3>
-          <p style="color:var(--muted)">Quick access to a few popular games. Click to open and play in your browser.</p>
+          <p style="color:var(--muted)">Click to play.</p>
           <div class="games-list">
             <a href="games/five_slot_games.html" onclick="return openGame('games/five_slot_games.html')">Slot</a>
             <a href="games/fishing.html" onclick="return openGame('games/fishing.html')">Fishing</a>
-            <a href="games/candy.js" onclick="return openGame('games/candy.js')">Candy (JS)</a>
+            <a href="games/candy.html" onclick="return openGame('games/candy.html')">Candy</a>
           </div>
         </div>
       </section>
 
-      <section style="display:grid;grid-template-columns:1fr 320px;gap:16px;margin-top:20px">
-        <div style="background:var(--card);padding:14px;border-radius:10px">
-          <h3>About</h3>
-          <p style="color:var(--muted)">AsiaTiger is a lightweight web game collection. This repo contains HTML, JS and assets for client side games.</p>
-        </div>
-
-        <div style="background:var(--card);padding:14px;border-radius:10px">
-          <h3>Balance</h3>
-          <div class="balance">
-            <div style="font-size:13px;color:var(--muted)">Balance</div>
-            <div id="balanceDisplay" style="font-size:20px;font-weight:bold">—</div>
-            <div id="vipDisplay" style="font-size:12px;color:var(--muted);margin-top:6px">VIP: —</div>
-            <div id="tgidDisplay" style="font-size:13px;color:var(--muted);margin-top:8px">Not logged in</div>
-          </div>
+      <!-- Balance -->
+      <section style="margin-top:20px;max-width:320px">
+        <div class="balanceBox">
+          <div style="font-size:13px;color:var(--muted)">Balance</div>
+          <div id="balanceDisplay" style="font-size:24px;font-weight:600">0</div>
+          <div id="tgidDisplay" style="font-size:12px;color:var(--muted)">Not logged in</div>
         </div>
       </section>
+
     </main>
   </div>
 
-  <!-- Firebase SDKs (compat) -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+  <!-- Firebase (module version, lighter & cleaner) -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js";
+    import { 
+      getAuth, 
+      signInWithEmailAndPassword,
+      onAuthStateChanged, 
+      signOut 
+    } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-auth.js";
 
-  <script>
-    // ====== Replace with your Firebase config ======
+    // Your Firebase config (correct)
     const firebaseConfig = {
       apiKey: "AIzaSyDXGN7xdSPFW2Bj_W0WHauUabpcWQKtYKM",
       authDomain: "asiatiger-c41d3.firebaseapp.com",
@@ -86,135 +89,101 @@
       messagingSenderId: "595368304934",
       appId: "1:595368304934:web:ae946ffe0e28e8758261e7"
     };
-    // ==============================================
 
-    firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
-    const db = firebase.firestore();
+    // Init
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
 
-    // UI refs
-    document.getElementById('tgidDisplay').textContent = 'Checking...';
-    const balanceEl = document.getElementById('balanceDisplay');
-    const vipEl = document.getElementById('vipDisplay');
-    const loginLink = document.getElementById('loginLink');
-    const logoutBtn = document.getElementById('logoutBtn');
+    // UI elements
+    const loginLink = document.getElementById("loginLink");
+    const logoutBtn = document.getElementById("logoutBtn");
+    const balanceEl = document.getElementById("balanceDisplay");
+    const tgidEl = document.getElementById("tgidDisplay");
 
-    window.currentTgid = null;
-    let unsubscribeBalance = null;
+    // Local simulated balance (free solution)
+    let localBalance = 1000;
 
-    function setLoggedOutUI() {
-      balanceEl.textContent = '—';
-      vipEl.textContent = 'VIP: —';
-      document.getElementById('tgidDisplay').textContent = 'Not logged in';
-      loginLink.style.display = 'inline-block';
-      logoutBtn.style.display = 'none';
+    // Update UI balance
+    function updateBalanceUI() {
+      balanceEl.textContent = localBalance;
     }
-    function setLoggedInUI(tgid) {
-      loginLink.style.display = 'none';
-      logoutBtn.style.display = 'inline-block';
-      document.getElementById('tgidDisplay').textContent = 'TGID: ' + tgid;
-    }
+    updateBalanceUI();
 
-    async function deriveTgid(user) {
-      try {
-        const idTokenResult = await user.getIdTokenResult(true);
-        if (idTokenResult?.claims?.tgid) return String(idTokenResult.claims.tgid);
-      } catch (e) { console.warn(e); }
-      if (user.email) return user.email.split('@')[0];
-      return user.uid;
-    }
+    // Detect login status
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        const tgid = user.uid;
+        window.currentTgid = tgid;
 
-    function subscribeBalance(tgid) {
-      if (unsubscribeBalance) { unsubscribeBalance(); unsubscribeBalance = null; }
-      const ref = db.collection('users').doc(String(tgid));
-      unsubscribeBalance = ref.onSnapshot(doc => {
-        if (!doc.exists) {
-          balanceEl.textContent = '0';
-          vipEl.textContent = 'VIP: —';
-          return;
-        }
-        const d = doc.data();
-        balanceEl.textContent = String(d.coin_balance ?? 0);
-        vipEl.textContent = 'VIP: ' + (d.vip_tier ?? '—');
-      }, err => {
-        console.error('balance listener error', err);
-      });
-    }
+        loginLink.style.display = "none";
+        logoutBtn.style.display = "inline-block";
 
-    auth.onAuthStateChanged(async user => {
-      if (unsubscribeBalance) { unsubscribeBalance(); unsubscribeBalance = null; }
-      window.currentTgid = null;
-      if (!user) { setLoggedOutUI(); return; }
-      const tgid = await deriveTgid(user);
-      window.currentTgid = String(tgid);
-      setLoggedInUI(window.currentTgid);
-      subscribeBalance(window.currentTgid);
-    });
+        tgidEl.textContent = "TGID: " + tgid;
 
-    logoutBtn.addEventListener('click', async () => {
-      try { await auth.signOut(); } catch(e){ console.error(e); alert('Logout failed'); }
-    });
+      } else {
+        window.currentTgid = null;
 
-    // apiSpin: sends ID token in Authorization header (server must verify)
-    window.apiSpin = async function(payload) {
-      try {
-        const user = firebase.auth().currentUser;
-        const headers = {'Content-Type':'application/json'};
-        if (user) {
-          const idToken = await user.getIdToken();
-          headers['Authorization'] = 'Bearer ' + idToken;
-        }
-        const res = await fetch('/api/spin', {
-          method: 'POST',
-          headers,
-          body: JSON.stringify(payload)
-        });
-        if (!res.ok) {
-          const text = await res.text();
-          throw new Error(`HTTP ${res.status}: ${text}`);
-        }
-        return await res.json();
-      } catch (err) {
-        console.error('apiSpin error', err);
-        throw err;
+        loginLink.style.display = "inline-block";
+        logoutBtn.style.display = "none";
+
+        tgidEl.textContent = "Not logged in";
       }
-    };
+    });
 
-    // doSpin used by game pages
+    // Logout
+    logoutBtn.onclick = () => signOut(auth);
+
+    // ===== SPIN FUNCTION (USED BY ALL GAMES) =====
     window.doSpin = async function(game, bet) {
       if (!window.currentTgid) {
-        alert('You need to login first');
+        alert("Please log in first!");
         return null;
       }
+
+      const payload = {
+        tgid: window.currentTgid,
+        game,
+        bet,
+        clientSeed: "browser"
+      };
+
       try {
-        const payload = { tgid: window.currentTgid, game, bet, clientSeed: 'web' };
-        const result = await window.apiSpin(payload);
-        return result;
-      } catch (e) {
-        console.error('doSpin error', e);
-        alert('Spin failed: ' + (e.message || 'server error'));
+        const res = await fetch("/api/spin", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+          alert("Spin error: " + data.error);
+          return null;
+        }
+
+        // Update local balance
+        localBalance = localBalance - bet + data.payout;
+        updateBalanceUI();
+
+        return data;
+
+      } catch (err) {
+        alert("Spin failed");
         return null;
       }
     };
 
-    // openGame: append tgid if available
+    // Open game with tgid
     window.openGame = function(url) {
-      try {
-        const tgid = window.currentTgid;
-        if (tgid) {
-          const sep = url.includes('?') ? '&' : '?';
-          window.location.href = url + sep + 'tgid=' + encodeURIComponent(tgid);
-          return false;
-        }
-      } catch(e){}
+      const tgid = window.currentTgid;
+      if (tgid) {
+        const sep = url.includes("?") ? "&" : "?";
+        window.location.href = url + sep + "tgid=" + encodeURIComponent(tgid);
+        return false;
+      }
       window.location.href = url;
       return false;
     };
-
-    // debug helpers
-    window.__debug = {
-      currentTgid: () => window.currentTgid
-    };
   </script>
+
 </body>
 </html>
