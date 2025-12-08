@@ -6,11 +6,8 @@
   <title>AsiaTiger — Home</title>
   <meta name="description" content="AsiaTiger web games" />
   <link rel="icon" href="logo.png" />
-
   <style>
-    :root{
-      --bg:#0f1724; --card:#0b1220; --accent:#ffb86b; --muted:#9aa4b2; color-scheme:dark;
-    }
+    :root{--bg:#0f1724;--card:#0b1220;--accent:#ffb86b;--muted:#9aa4b2;color-scheme:dark}
     html,body{height:100%;margin:0;font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,Arial;background:linear-gradient(180deg,#071021 0%,#071827 100%);color:#e6eef6}
     .container{max-width:1100px;margin:36px auto;padding:24px}
     header{display:flex;align-items:center;gap:16px}
@@ -29,7 +26,7 @@
     .balance{background:#071827;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.03)}
     .note{color:var(--muted);font-size:13px}
     @media (max-width:600px){header{flex-direction:column;align-items:flex-start}.top-actions{margin-left:0}}
-    pre.debug{background:#071827;border:1px solid rgba(255,255,255,0.04);padding:10px;border-radius:8px;color:var(--muted);overflow:auto}
+    .small{font-size:13px;color:var(--muted)}
   </style>
 </head>
 <body>
@@ -41,8 +38,8 @@
         <div class="note">Play web games • Fast deploy • Built with JavaScript</div>
       </div>
       <div class="top-actions">
-        <a class="btn" href="login.html">Login</a>
-        <a class="btn" href="admin.html">Admin</a>
+        <a id="loginLink" class="btn" href="login.html">Login</a>
+        <button id="logoutBtn" class="btn" style="display:none">Logout</button>
       </div>
     </header>
 
@@ -60,11 +57,11 @@
           <h3>Featured Games</h3>
           <p>Quick access to a few popular games. Click to open and play in your browser.</p>
           <div class="games-list" style="margin-top:12px">
-            <a href="games/slot.html">Slot</a>
-            <a href="games/fishing.html">Fishing</a>
-            <a href="games/panda.js">Panda (JS)</a>
-            <a href="games/space.js">Space (JS)</a>
-            <a href="games/candy.js">Candy (JS)</a>
+            <a href="games/slot.html" onclick="return openGame('games/slot.html')">Slot</a>
+            <a href="games/fishing.html" onclick="return openGame('games/fishing.html')">Fishing</a>
+            <a href="games/panda.js" onclick="return openGame('games/panda.js')">Panda (JS)</a>
+            <a href="games/space.js" onclick="return openGame('games/space.js')">Space (JS)</a>
+            <a href="games/candy.js" onclick="return openGame('games/candy.js')">Candy (JS)</a>
           </div>
         </div>
       </section>
@@ -78,9 +75,10 @@
         <div class="card">
           <h3>Balance</h3>
           <div class="balance">
-            <div style="font-size:13px;color:var(--muted)">Balance</div>
+            <div class="small">Balance</div>
             <div id="balanceDisplay" style="font-size:20px;font-weight:bold">—</div>
             <div id="vipDisplay" style="font-size:12px;color:var(--muted);margin-top:6px">VIP: —</div>
+            <div id="tgidDisplay" class="small" style="margin-top:8px">Not logged in</div>
           </div>
         </div>
 
@@ -101,25 +99,116 @@
     </footer>
   </div>
 
+  <!-- Firebase SDKs (compat) -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+
   <script>
-    // small helpers
+    // ====== YOUR FIREBASE CONFIG (inserted as requested) ======
+    const firebaseConfig = {
+      apiKey: "AIzaSyDXGN7xdSPFW2Bj_W0WHauUabpcWQKtYKM",
+      authDomain: "asiatiger-c41d3.firebaseapp.com",
+      projectId: "asiatiger-c41d3",
+      storageBucket: "asiatiger-c41d3.firebasestorage.app",
+      messagingSenderId: "595368304934",
+      appId: "1:595368304934:web:ae946ffe0e28e8758261e7"
+    };
+    // ==========================================================
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    // UI elements
     document.getElementById('year').textContent = new Date().getFullYear();
+    const balanceEl = document.getElementById('balanceDisplay');
+    const vipEl = document.getElementById('vipDisplay');
+    const tgidEl = document.getElementById('tgidDisplay');
+    const loginLink = document.getElementById('loginLink');
+    const logoutBtn = document.getElementById('logoutBtn');
 
-    // Optional: preload sounds
-    (function preload(){
-      const sounds = ['sounds/spin.mp3','sounds/win.mp3'];
-      sounds.forEach(src=>{
-        const a = new Audio();
-        a.src = src;
-      });
-    })();
+    // global current tgid
+    window.currentTgid = null;
+    let unsubscribeBalance = null;
 
-    // Minimal API helper used by demo pages
-    window.apiSpin = async function(payload){
-      // default API base; change to your public API URL if needed
-      const API_BASE = '/api';
+    function setLoggedOutUI() {
+      balanceEl.textContent = '—';
+      vipEl.textContent = 'VIP: —';
+      tgidEl.textContent = 'Not logged in';
+      loginLink.style.display = 'inline-block';
+      logoutBtn.style.display = 'none';
+    }
+    function setLoggedInUI(tgid) {
+      loginLink.style.display = 'none';
+      logoutBtn.style.display = 'inline-block';
+      tgidEl.textContent = 'TGID: ' + tgid;
+    }
+
+    // derive tgid from token claims or email prefix or uid
+    async function deriveTgid(user) {
       try {
-        const res = await fetch(API_BASE + '/spin', {
+        const idTokenResult = await user.getIdTokenResult(true);
+        const claimTgid = idTokenResult?.claims?.tgid;
+        if (claimTgid) return String(claimTgid);
+      } catch (e) {
+        console.warn('getIdTokenResult failed', e);
+      }
+      if (user.email) return user.email.split('@')[0];
+      return user.uid;
+    }
+
+    // subscribe to user's Firestore doc for realtime balance
+    function subscribeBalance(tgid) {
+      if (unsubscribeBalance) { unsubscribeBalance(); unsubscribeBalance = null; }
+      const docRef = db.collection('users').doc(String(tgid));
+      unsubscribeBalance = docRef.onSnapshot(doc => {
+        if (!doc.exists) {
+          balanceEl.textContent = '0';
+          vipEl.textContent = 'VIP: —';
+          return;
+        }
+        const data = doc.data();
+        balanceEl.textContent = String(data.coin_balance ?? 0);
+        vipEl.textContent = 'VIP: ' + (data.vip_tier ?? '—');
+      }, err => {
+        console.error('balance listener error', err);
+      });
+    }
+
+    // auth state listener
+    auth.onAuthStateChanged(async user => {
+      // cleanup
+      if (unsubscribeBalance) { unsubscribeBalance(); unsubscribeBalance = null; }
+      window.currentTgid = null;
+
+      if (!user) {
+        setLoggedOutUI();
+        return;
+      }
+
+      // derive tgid and subscribe
+      const tgid = await deriveTgid(user);
+      window.currentTgid = String(tgid);
+      setLoggedInUI(window.currentTgid);
+      subscribeBalance(window.currentTgid);
+    });
+
+    // logout button
+    logoutBtn.addEventListener('click', async () => {
+      try {
+        await auth.signOut();
+      } catch (e) {
+        console.error('Sign out failed', e);
+        alert('Logout failed');
+      }
+    });
+
+    // Minimal API helper used by game pages
+    window.apiSpin = async function(payload) {
+      try {
+        const res = await fetch('/api/spin', {
           method: 'POST',
           headers: {'Content-Type':'application/json'},
           body: JSON.stringify(payload)
@@ -135,9 +224,37 @@
       }
     };
 
-    // Simple helper for opening games
-    window.openGame = function(url){
+    // doSpin used by game pages
+    window.doSpin = async function(game, bet) {
+      if (!window.currentTgid) {
+        alert('You need to login first');
+        return null;
+      }
+      try {
+        const payload = { tgid: window.currentTgid, game, bet, clientSeed: 'web' };
+        const result = await window.apiSpin(payload);
+        return result;
+      } catch (e) {
+        alert('Spin failed: ' + (e.message || 'server error'));
+        return null;
+      }
+    };
+
+    // open game helper
+    window.openGame = function(url) {
       window.location.href = url;
+      return false;
+    };
+
+    // debug helper (optional)
+    window.__debug = {
+      currentTgid: () => window.currentTgid,
+      signInTest: async () => {
+        try {
+          const cred = await auth.signInAnonymously();
+          console.log('anon signed in', cred);
+        } catch (e) { console.error(e); }
+      }
     };
   </script>
 </body>
