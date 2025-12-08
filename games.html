@@ -1,199 +1,47 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AsiaTiger — Games</title>
-
-  <style>
-    :root {
-      --bg: #0f1724;
-      --card: #0b1220;
-      --accent: #ffb86b;
-      --muted: #9aa4b2;
-      color-scheme: dark;
-    }
-    body {
-      margin: 0;
-      font-family: Inter, Arial, sans-serif;
-      background: linear-gradient(180deg,#071021 0%,#071827 100%);
-      color: #e6eef6;
-    }
-
-    .container {
-      max-width: 1100px;
-      margin: 36px auto;
-      padding: 16px;
-    }
-
-    h1 {
-      margin: 0 0 20px 0;
-      font-size: 28px;
-      font-weight: 700;
-    }
-
-    /* Tabs */
-    .tabs {
-      display: flex;
-      gap: 12px;
-      margin-bottom: 20px;
-      flex-wrap: wrap;
-    }
-    .tab-btn {
-      padding: 10px 18px;
-      border-radius: 8px;
-      cursor: pointer;
-      background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(255,255,255,0.08);
-      color: var(--accent);
-      font-weight: 600;
-      transition: .15s;
-    }
-    .tab-btn.active {
-      background: var(--accent);
-      color: #000;
-    }
-
-    /* Game Grid */
-    .game-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 16px;
-      margin-top: 10px;
-    }
-
-    .game-card {
-      background: var(--card);
-      padding: 14px;
-      border: 1px solid rgba(255,255,255,0.06);
-      border-radius: 12px;
-      cursor: pointer;
-      transition: 0.15s;
-    }
-    .game-card:hover {
-      background: #111c2d;
-      transform: translateY(-2px);
-    }
-    .game-title {
-      font-size: 18px;
-      font-weight: 600;
-      margin-bottom: 6px;
-    }
-    .game-desc {
-      font-size: 13px;
-      color: var(--muted);
-    }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AsiaTiger — All Games</title>
+<style>
+  body { font-family: Arial, sans-serif; background: #f4f4f4; margin: 0; padding: 0; }
+  header { background: #000; color: #FFD700; padding: 16px; text-align: center; font-size: 24px; }
+  .container { max-width: 700px; margin: 40px auto; background: #fff; padding: 24px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+  .input-group { margin-bottom: 20px; }
+  input { width: 100%; padding: 10px; font-size: 16px; border: 1px solid #ccc; border-radius: 6px; }
+  .game-buttons button { width: 100%; padding: 12px; margin-bottom: 10px; font-size: 16px; border: none; border-radius: 6px; cursor: pointer; }
+  .slot { background: #28a745; color: #fff; }
+  .fish { background: #007bff; color: #fff; }
+  .card { background: #6f42c1; color: #fff; }
+</style>
 </head>
-
 <body>
-<div class="container">
-  <h1>🎮 AsiaTiger Games</h1>
+  <header>AsiaTiger — All Games</header>
 
-  <!-- Tabs -->
-  <div class="tabs">
-    <div class="tab-btn active" onclick="switchTab('slot')">🎰 Slot</div>
-    <div class="tab-btn" onclick="switchTab('fishing')">🐟 Fishing</div>
-    <div class="tab-btn" onclick="switchTab('other')">🧩 Other</div>
-  </div>
-
-  <!-- SLOT TAB -->
-  <div id="slot" class="game-grid">
-    <div class="game-card" onclick="openGame('games/five_slot_games.html')">
-      <div class="game-title">🎰 Five Slot Game</div>
-      <div class="game-desc">Basic 5–Reel Slot Engine</div>
+  <div class="container">
+    <div class="input-group">
+      <label>Enter your Telegram ID</label>
+      <input type="text" id="tgid" placeholder="e.g. 6824787323">
     </div>
 
-    <div class="game-card" onclick="openGame('games/slot.html')">
-      <div class="game-title">🎮 Main Slot Machine</div>
-      <div class="game-desc">Select Themes via URL</div>
-    </div>
-
-    <div class="game-card" onclick="openGame('games/slot.html?game=egypt')">
-      <div class="game-title">🏺 Egypt</div>
-      <div class="game-desc">Golden Pharaoh Slot</div>
-    </div>
-
-    <div class="game-card" onclick="openGame('games/slot.html?game=panda')">
-      <div class="game-title">🐼 Panda</div>
-      <div class="game-desc">Lucky Panda Jackpot</div>
-    </div>
-
-    <div class="game-card" onclick="openGame('games/slot.html?game=starlight')">
-      <div class="game-title">🌟 Starlight</div>
-      <div class="game-desc">Anime Multiplier Slot</div>
-    </div>
-
-    <div class="game-card" onclick="openGame('games/slot.html?game=fortune')">
-      <div class="game-title">💰 Fortune</div>
-      <div class="game-desc">High Win Fortune Slot</div>
-    </div>
-
-    <div class="game-card" onclick="openGame('games/slot.html?game=space')">
-      <div class="game-title">🚀 Space</div>
-      <div class="game-desc">Galaxy Bonus Features</div>
-    </div>
-
-    <div class="game-card" onclick="openGame('games/slot.html?game=myanmar')">
-      <div class="game-title">🇲🇲 Myanmar</div>
-      <div class="game-desc">Myanmar Theme Slot</div>
-    </div>
-
-    <div class="game-card" onclick="openGame('games/slot.html?game=thameetaw')">
-      <div class="game-title">👧 Thamee Taw</div>
-      <div class="game-desc">Cute & Fun Slot</div>
+    <div class="game-buttons">
+      <button class="slot" onclick="launchGame('games/five_slot_games.html')">🎰 Slot Games</button>
+      <button class="fish" onclick="launchGame('games/fishing.html')">🐟 Fish Shooting</button>
+      <button class="card" onclick="launchGame('games/card.html')">🃏 Card Games</button>
     </div>
   </div>
 
-  <!-- FISHING TAB -->
-  <div id="fishing" class="game-grid" style="display:none;">
-    <div class="game-card" onclick="openGame('games/fishing.html')">
-      <div class="game-title">🐟 Fishing</div>
-      <div class="game-desc">Classic Fish Shooting Game</div>
-    </div>
-
-    <div class="game-card" onclick="openGame('games/fishing.js')">
-      <div class="game-title">🎯 Fishing JS</div>
-      <div class="game-desc">JS Version of Fishing</div>
-    </div>
-
-    <div class="game-card" onclick="openGame('games/fish.html')">
-      <div class="game-title">🌀 Fish Mode</div>
-      <div class="game-desc">Alternate Fish Game</div>
-    </div>
-  </div>
-
-  <!-- OTHER TAB -->
-  <div id="other" class="game-grid" style="display:none;">
-
-    <div class="game-card" onclick="openGame('games/card.html')">
-      <div class="game-title">🃏 Card Game</div>
-      <div class="game-desc">Simple Card Game</div>
-    </div>
-
-    <div class="game-card" onclick="openGame('games/audit.html')">
-      <div class="game-title">📊 Audit</div>
-      <div class="game-desc">Admin Audit Tool</div>
-    </div>
-
-    <div class="game-card" onclick="openGame('games/aphogyi.js')">
-      <div class="game-title">👴 Aphogyi</div>
-      <div class="game-desc">Funny Random Game</div>
-    </div>
-
-  </div>
-
-</div>
-
-<script>
-  function switchTab(tab) {
-    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-    document.querySelectorAll('.game-grid').forEach(grid => grid.style.display = 'none');
-
-    document.querySelector(`.tab-btn[onclick="switchTab('${tab}')"]`).classList.add('active');
-    document.getElementById(tab).style.display = 'grid';
-  }
-</script>
-
+  <script>
+    function launchGame(url) {
+      const tgid = document.getElementById("tgid").value.trim();
+      if (!tgid) {
+        alert("Enter your Telegram ID first");
+        return;
+      }
+      const sep = url.includes('?') ? '&' : '?';
+      window.location.href = url + sep + "tgid=" + encodeURIComponent(tgid);
+    }
+  </script>
 </body>
 </html>
