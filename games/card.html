@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>AsiaTiger — Card Game (Blackjack)</title>
+  <style>
+    body { background:#0f172a; color:#e5e7eb; font-family:Arial, sans-serif; margin:0; }
+    .wrap { max-width:640px; margin:24px auto; background:#111827; padding:16px; border-radius:10px; }
+    .stat { text-align:center; margin-bottom:12px; }
+    .hand { display:flex; gap:8px; justify-content:center; margin:8px 0; }
+    .card { background:#1f2937; border:1px solid #374151; border-radius:8px; padding:10px 14px; }
+    .controls { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:10px; }
+    button { padding:12px; border:none; border-radius:8px; color:#fff; cursor:pointer; }
+    .bet { background:#28a745; }
+    .hit { background:#0069d9; }
+    .stand { background:#8b5cf6; }
+    .back { background:#007bff; grid-column:span 3; }
+    .note { text-align:center; font-size:12px; color:#9ca3af; margin-top:8px; }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="stat" id="info">Loading…</div>
+
+  <div class="stat">Your Hand</div>
+  <div class="hand" id="player"></div>
+
+  <div class="stat">Dealer</div>
+  <div class="hand" id="dealer"></div>
+
+  <div class="stat" id="result">Place a bet to start (100 coins)</div>
+
+  <div class="controls">
+    <button class="bet" id="betBtn">Bet 100</button>
+    <button class="hit" id="hitBtn" disabled>Hit</button>
+    <button class="stand" id="standBtn" disabled>Stand</button>
+    <button class="back" onclick="goBack()">Back to Launcher</button>
+  </div>
+
+  <div class="note">VIP gives a small bonus on blackjacks and ties.</div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyDYNX7dSPFW2Bj_W0WHauUabpcWKtYKYM",
+    authDomain: "asiatiger-c41d3.firebaseapp.com",
+    projectId: "asiatiger-c41d3",
+    storageBucket: "asiatiger-c41d3.appspot.com",
+    messagingSenderId: "595363804934",
+    appId: "1:595363804934:web:ae946ff0e82e8785261e7"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+
+  const params = new URLSearchParams(location.search);
+  const tgid = (params.get('tgid') || '').trim();
+  const info = document.getElementById('info');
+  const playerEl = document.getElementById('player');
+  const dealerEl = document.getElementById('dealer');
+  const resultEl = document.getElementById('result');
+  const betBtn = document.getElementById('betBtn');
+  const hitBtn = document.getElementById('hitBtn');
+  const standBtn = document.getElementById('standBtn');
+
+  let vip = 'Bronze';
+  let balance = 0;
+  let deck = [];
+  let player = [];
+  let dealer = [];
+  let inRound = false;
+
+  function goBack(){ location.href = '../games.html'; }
+
+  async function loadUser() {
+    if (!tgid) { info.textContent='Missing Telegram ID'; return; }
+    const doc = await db.collection('users').doc(tgid).get();
+    if (!doc.exists) { info.textContent='No account found'; return; }
+    const d = doc.data();
+    vip = d.vip_tier || 'Bronze';
+    balance = typeof d.coin_balance === 'number' ? d.coin_balance : 0;
+    info.textContent = `TG: ${tgid} | Balance: ${balance} | VIP: ${vip}`;
+  }
+
+  function vipTieBonus(v){
+    switch(v){
+      case 'Silver': return 5;
+      case 'Gold': return 10;
+      case 'Platinum': return 20;
+      default: return 0;
+    }
+  }
+  function vipBlackjackBonus(v){
+    switch(v){
+      case 'Silver': return 10;
+      case 'Gold': return 20;
+      case 'Platinum': return 40;
+      default: return 0;
+    }
+  }
+
+  function newDeck(){
+    deck = [];
+    const ranks = [2,3,4,5,6,7,8,9,10,'J','Q','K','A'];
+    const suits = ['♠','♥','♦','♣'];
+    for (const r of ranks) for (const s of suits) deck.push({r,s});
+    deck.sort(()=>Math.random()-0.5);
+  }
+
+  function value(hand){
+    let total = 0, aces = 0;
+    for (const c of hand){
+      if (typeof c.r === 'number') total += c.r;
+      else if (c.r === 'A'){ total += 11; aces++; }
+      else total += 10;
+    }
+    while (total > 21 && aces > 0){ total -= 10; aces--; }
+    return total;
+  }
+
+  function draw(to){ to.push(deck.pop()); }
+
+  function render(){
+    playerEl.innerHTML = player.map(c=>`<div class="card">${c.r}${c.s}</div>`).join('');
+    dealerEl.innerHTML = dealer.map(c=>`<div class="card">${c.r}${c.s}</div>`).join('');
+    resultEl.textContent = `Your ${value(player)} vs Dealer ${value(dealer)}`;
+  }
+
+  async function placeBet(){
+    const cost = 100;
+    const ref = db.collection('users').doc(tgid);
+    const snap = await ref.get();
+    if (!snap.exists){ resultEl.textContent='No account found'; return; }
+    const d = snap.data();
+    const current = typeof d.coin_balance === 'number' ? d.coin_balance : 0;
+    const tier = d.vip_tier || 'Bronze';
+    if (current < cost){ resultEl.textContent='Insufficient balance'; return; }
+
+    // Deduct bet
+    const next = current - cost;
+    await ref.update({ coin_balance: next, vip_tier: tier });
+    await db.collection('users').doc(tgid).collection('game_tx').add({
+      game: 'card', bet: cost, win: 0, prev_balance: current, new_balance: next,
+      vip_tier: tier, stage: 'bet', ts: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    balance = next; vip = tier;
+    info.textContent = `TG: ${tgid} | Balance: ${balance} | VIP: ${vip}`;
+
+    // Start round
+    inRound = true; betBtn.disabled = true; hitBtn.disabled = false; standBtn.disabled = false;
+    newDeck();
+    player = []; dealer = [];
+    draw(player); draw(dealer); draw(player); draw(dealer);
+    render();
+
+    // Natural blackjack check
+    const p = value(player), dval = value(dealer);
+    if (p === 21 || dval === 21){
+      await settle(p, dval, cost);
+    }
+  }
+
+  async function settle(pVal, dVal, stake){
+    let win = 0;
+    if (pVal > 21) { win = 0; }            // player bust
+    else if (dVal > 21) { win = stake*2; } // dealer bust
+    else if (pVal > dVal) { win = stake*2; }
+    else if (pVal < dVal) { win = 0; }
+    else { win = stake + vipTieBonus(vip); } // tie returns stake + VIP bonus
+
+    // Blackjack bonus
+    const pBlackjack = (value(player) === 21 && player.length === 2);
+    if (pBlackjack) win += vipBlackjackBonus(vip);
+
+    const ref = db.collection('users').doc(tgid);
+    const snap = await ref.get();
+    const current = snap.data().coin_balance ?? 0;
+    const next = current + win;
+    await ref.update({ coin_balance: next, vip_tier: vip });
+    await db.collection('users').doc(tgid).collection('game_tx').add({
+      game: 'card', bet: stake, win: win, prev_balance: current, new_balance: next,
+      vip_tier: vip, stage: 'settle', ts: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    balance = next;
+    info.textContent = `TG: ${tgid} | Balance: ${balance} | VIP: ${vip}`;
+    resultEl.textContent = win > 0 ? `You won ${win} coins` : `You lost`;
+    inRound = false; betBtn.disabled = false; hitBtn.disabled = true; standBtn.disabled = true;
+  }
+
+  document.getElementById('betBtn').addEventListener('click', placeBet);
+  document.getElementById('hitBtn').addEventListener('click', async () => {
+    if (!inRound) return;
+    draw(player);
+    render();
+    const p = value(player);
+    if (p >= 21){
+      // Dealer plays
+      while (value(dealer) < 17) draw(dealer);
+      render();
+      await settle(p, value(dealer), 100);
+    }
+  });
+  document.getElementById('standBtn').addEventListener('click', async () => {
+    if (!inRound) return;
+    while (value(dealer) < 17) draw(dealer);
+    render();
+    await settle(value(player), value(dealer), 100);
+  });
+
+  loadUser();
+</script>
+</body>
+</html>

@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AsiaTiger — 19 Slot Games</title>
+<style>
+  :root{--bg:#0b0b0b;--card:#131313;--muted:#9aa0a6}
+  body{background:var(--bg);color:#fff;font-family:Inter,Arial;margin:0;padding:18px}
+  .wrap{max-width:1200px;margin:0 auto}
+  header{display:flex;gap:12px;align-items:center;justify-content:space-between}
+  h1{font-size:20px;margin:0}
+  .nav{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+  .nav button{background:#1f6feb;border:0;padding:8px 12px;border-radius:8px;color:#fff;cursor:pointer}
+  .board{background:var(--card);padding:16px;border-radius:12px;margin-top:12px}
+  .games{display:grid;grid-template-columns:1fr;gap:12px}
+  .game{display:none;padding:12px;border-radius:8px}
+  .game.active{display:block}
+  .reels{display:flex;gap:8px;justify-content:center;margin:12px 0}
+  .col{background:#0f0f0f;padding:8px;border-radius:8px;min-width:60px;text-align:center}
+  .cell{font-size:28px;padding:10px 6px}
+  .controls{display:flex;gap:8px;justify-content:center;margin-top:10px;flex-wrap:wrap}
+  .btn{padding:10px 14px;border-radius:8px;border:0;cursor:pointer}
+  .spin{background:#e94e1b;color:#fff}
+  .small{padding:6px 8px}
+  .stat{margin-top:8px;text-align:center;color:var(--muted)}
+  .paytable{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+  .bet-input{padding:10px;border-radius:6px;border:1px solid #444;background:#0f0f0f;color:#fff;width:120px}
+  footer{color:#9aa0a6;text-align:center;margin-top:12px}
+  @media(min-width:900px){.games{grid-template-columns:1fr 1fr}}
+  .notice { text-align:center; color:#ffd; margin:12px 0; }
+  .loginPrompt { text-align:center; margin:18px 0; }
+  .loginPrompt button { padding:8px 12px; border-radius:8px; border:none; background:#007bff; color:#fff; cursor:pointer; }
+</style>
+</head>
+<body>
+<audio id="spinSound" src="../sounds/spin.mp3" preload="auto"></audio>
+<audio id="winSound" src="../sounds/win.mp3" preload="auto"></audio>
+
+<div class="wrap">
+  <header>
+    <h1>AsiaTiger — 19 Slot Games</h1>
+    <div>
+      <small class="stat" id="info">Loading…</small>
+    </div>
+  </header>
+
+  <div class="nav" id="nav"></div>
+
+  <div class="board">
+    <div id="authNotice" class="notice" style="display:none"></div>
+
+    <div class="games" id="games">
+      <!-- Egypt Quest -->
+      <div id="game-egypt" class="game">
+        <h3>Egypt Quest — 5×3</h3>
+        <div class="reels" id="egypt-reels"></div>
+        <div class="controls">
+          <input type="number" id="betInput-egypt" class="bet-input" min="100" max="3000" step="100" value="100">
+          <button class="btn spin" id="spin-egypt" onclick="spinEgypt()">SPIN</button>
+        </div>
+        <div class="stat" id="egypt-res">—</div>
+        <div class="paytable" id="egypt-pay"></div>
+      </div>
+
+      <!-- Fortune Panda -->
+      <div id="game-panda" class="game">
+        <h3>Fortune Panda — 6×4</h3>
+        <div class="reels" id="panda-reels"></div>
+        <div class="controls">
+          <input type="number" id="betInput-panda" class="bet-input" min="100" max="3000" step="100" value="120">
+          <button class="btn spin" id="spin-panda" onclick="spinPanda()">SPIN</button>
+        </div>
+        <div class="stat" id="panda-res">—</div>
+      </div>
+
+      <!-- Sweet Candy Rush -->
+      <div id="game-candy" class="game">
+        <h3>Sweet Candy Rush — Cluster</h3>
+        <div class="reels" id="candy-reels"></div>
+        <div class="controls">
+          <input type="number" id="betInput-candy" class="bet-input" min="100" max="3000" step="100" value="200">
+          <button class="btn spin" id="spin-candy" onclick="spinCandy()">SPIN</button>
+        </div>
+        <div class="stat" id="candy-res">—</div>
+      </div>
+
+      <!-- Myanmar Gold -->
+      <div id="game-myanmar" class="game">
+        <h3>Myanmar Gold — 5×4</h3>
+        <div class="reels" id="myanmar-reels"></div>
+        <div class="controls">
+          <input type="number" id="betInput-myanmar" class="bet-input" min="100" max="3000" step="100" value="120">
+          <button class="btn spin" id="spin-myanmar" onclick="spinMyanmar()">SPIN</button>
+        </div>
+        <div class="stat" id="myanmar-res">—</div>
+        <div class="paytable" id="myanmar-pay"></div>
+      </div>
+
+      <!-- Space Adventure -->
+      <div id="game-space" class="game">
+        <h3>Space Adventure — Expanding Wild</h3>
+        <div class="reels" id="space-reels"></div>
+        <div class="controls">
+          <input type="number" id="betInput-space" class="bet-input" min="100" max="3000" step="100" value="150">
+          <button class="btn spin" id="spin-space" onclick="spinSpace()">SPIN</button>
+        </div>
+        <div class="stat" id="space-res">—</div>
+      </div>
+
+      <!-- Aphoe Gyi -->
+      <div id="game-aphogyi" class="game">
+        <h3>Aphoe Gyi — Golden Treasure (5×3)</h3>
+        <div class="reels" id="aphogyi-reels"></div>
+        <div class="controls">
+          <input type="number" id="betInput-aphogyi" class="bet-input" min="100" max="3000" step="100" value="130">
+          <button class="btn spin" id="spin-aphogyi" onclick="spinAphogyi()">SPIN</button>
+        </div>
+        <div class="stat" id="aphogyi-res">—</div>
+      </div>
+
+      <!-- Thamee Taw -->
+      <div id="game-thameetaw" class="game">
+        <h3>Thamee Taw — Princess (5×3)</h3>
+        <div class="reels" id="thameetaw-reels"></div>
+        <div class="controls">
+          <input type="number" id="betInput-thameetaw" class="bet-input" min="100" max="3000" step="100" value="140">
+          <button class="btn spin" id="spin-thameetaw" onclick="spinThameetaw()">SPIN</button>
+        </div>
+        <div class="stat" id="thameetaw-res">—</div>
+      </div>
+
+      <!-- Kywe Festival -->
+      <div id="game-kywe" class="game">
+        <h3>Kywe — Buffalo Festival (3×3)</h3>
+        <div class="reels" id="kywe-reels"></div>
+        <div class="controls">
+          <input type="number" id="betInput-kywe" class="bet-input" min="100" max="3000" step="100" value="100">
+          <button class="btn spin" id="spin-kywe" onclick="spinKywe()">SPIN</button>
+        </div>
+        <div class="stat" id="kywe-res">—</div>
+      </div>
+
+      <!-- Gates of Olympus -->
+      <div id="game-gates" class="game">
+        <h3>Gates of Olympus — 6×5 Tumble</h3>
+        <div class="reels" id="gates-reels"></div>
+        <div class="controls">
+          <input type="number" id="betInput-gates" class="bet-input" min="100" max="3000" step="100" value="100">
+          <button class="btn spin" id="spin-gates" onclick="spinGates()">SPIN</button>
+        </div>
+        <div class="stat" id="gates-res">—</div>
+      </div>
+
+      <!-- Starlight Princess -->
+      <div id="game-starlight" class="game">
+        <h3>Starlight Princess — 6×5 Tumbling</h3>
+        <div class="reels" id="starlight-reels"></div>
+        <div class="controls">
+          <input type="number" id="betInput-starlight" class="bet-input" min="100" max="3000" step="100" value="120">
+          <button class="btn spin" id="spin-starlight" onclick="spinStarlight()">SPIN</button>
+        </div>
+        <div class="stat" id="starlight-res">—</div>
+      </div>
+
+      <!-- Sugar Rush -->
+      <div id="game-sugar" class="game">
+        <h3>Sugar Rush — 6×6 Cluster</h3>
+        <div class="reels" id="sugar-reels"></div>
+        <div class="controls">
+          <input type="number" id="betInput-sugar" class="bet-input" min="100" max="3000" step="100" value="80">
+          <button class="btn spin" id="spin-sugar" onclick="spinSugar()">SPIN</button>
+        </div>
+        <div class="stat" id="sugar-res">—</div>
+      </div>
+
+      <!-- Fortune Tiger -->
+      <div id="game-fortune" class="game">
+        <h3>Fortune Tiger — 5×3 Free Spins</h3>
+        <div class="reels" id="fortune-reels"></div>
+        <div class="controls">
+          <input type="number" id="betInput-fortune" class="bet-input" min="100" max="3000" step="100" value="100">
+          <button class="btn spin" id="spin-fortune" onclick="spinFortune()">SPIN</button>
+        </div>
+        <div class="stat" id="fortune-res">—</div>
+      </div>
+    </div>
+
+    <div style="margin-top:14px">
+      <strong>Notes:</strong> RNG is client-side for demo. For production fairness, move outcome and balance updates server-side.
+    </div>
+  </div>
+
+  <footer>Made for testing & learning. Replace RNG and payouts for production.</footer>
+</div>
+
+<!-- Firebase init -->
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyDXGN7xdSPFW2Bj_W0WHauUabpcWQKtYKM",
+    authDomain: "asiatiger-c41d3.firebaseapp.com",
+    projectId: "asiatiger-c41d3",
+    storageBucket: "asiatiger-c41d3.firebasestorage.app",
+    messagingSenderId: "595368304934",
+    appId: "1:595368304934:web:ae946ffe0e28e8758261e7"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+  const auth = firebase.auth();
+
+  // helper: show login prompt
+  function showLoginPrompt() {
+    const notice = document.getElementById('authNotice');
+    notice.style.display = 'block';
+    notice.innerHTML = `<div class="loginPrompt">You need to Login first.<br><button onclick="window.location.href='/login.html'">Go to Login</button></div>`;
+    // disable all spin buttons
+    document.querySelectorAll('.spin').forEach(b => b.disabled = true);
+  }
+
+  function enableSpins() {
+    document.querySelectorAll('.spin').forEach(b => b.disabled = false);
+  }
+
+  function getTgidFromUrl() {
+    const params = new URLSearchParams(location.search);
+    return (params.get('tgid') || '').trim();
+  }
+
+  let tgid = '';
+  let balance = 0;
+  let vip = 'Bronze';
+  const infoBar = document.getElementById('info');
+
+  // Auth-aware initialization
+  auth.onAuthStateChanged(async user => {
+    if (user) {
+      try {
+        const token = await user.getIdTokenResult(true);
+        tgid = (token.claims && token.claims.tgid) || (user.email ? user.email.split('@')[0] : user.uid);
+      } catch (e) {
+        console.warn('token fetch failed, fallback to email', e);
+        tgid = user.email ? user.email.split('@')[0] : user.uid;
+      }
+      initForTgid(tgid);
+    } else {
+      const urlTgid = getTgidFromUrl();
+      if (urlTgid) {
+        tgid = urlTgid;
+        initForTgid(tgid);
+      } else {
+        infoBar.textContent = 'You need to Login first';
+        showLoginPrompt();
+      }
+    }
+  });
+
+  async function initForTgid(id) {
+    if (!id) {
+      infoBar.textContent = 'You need to Login first';
+      showLoginPrompt();
+      return;
+    }
+    enableSpins();
+    const ref = db.collection('users').doc(String(id));
+    try {
+      const snap = await ref.get();
+      if (!snap.exists) {
+        infoBar.textContent = 'No account found';
+        showLoginPrompt();
+        return;
+      }
+      const d = snap.data();
+      balance = typeof d.coin_balance === 'number' ? d.coin_balance : 0;
+      vip = d.vip_tier || 'Bronze';
+      infoBar.textContent = `TG: ${id} | Balance: ${balance} | VIP: ${vip}`;
+    } catch (e) {
+      console.error('user fetch error', e);
+      infoBar.textContent = 'Error loading account';
+    }
+    ref.onSnapshot(doc => {
+      if (!doc.exists) return;
+      const d = doc.data();
+      balance = d.coin_balance ?? balance;
+      vip = d.vip_tier ?? vip;
+      infoBar.textContent = `TG: ${id} | Balance: ${balance} | VIP: ${vip}`;
+    });
+  }
+
+  // applySpin: updates Firestore (demo uses client RNG but writes server-like)
+  async function applySpin(gameName, betAmount, winAmount) {
+    if (!tgid) { alert('You need to Login first'); return {ok:false}; }
+    const ref = db.collection('users').doc(tgid);
+    const snap = await ref.get();
+    if (!snap.exists) { infoBar.textContent = 'No account found'; return {ok:false}; }
+    const d = snap.data();
+    const current = typeof d.coin_balance === 'number' ? d.coin_balance : 0;
+    const tier = d.vip_tier || 'Bronze';
+    if (isNaN(betAmount) || betAmount < 100 || betAmount > 3000) {
+      alert('Invalid bet amount'); return {ok:false};
+    }
+    if (current < betAmount) {
+      infoBar.textContent = 'Insufficient balance';
+      return {ok:false};
+    }
+    const next = current - betAmount + winAmount;
+    await ref.update({ coin_balance: next, vip_tier: tier });
+    await db.collection('users').doc(tgid).collection('game_tx').add({
+      game: gameName, bet: betAmount, win: winAmount,
+      prev_balance: current, new_balance: next,
+      vip_tier: tier, ts: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    balance = next; vip = tier;
+    infoBar.textContent = `TG: ${tgid} | Balance: ${balance} | VIP: ${vip}`;
+    return {ok:true, next};
+  }
+
+  // Generic demo RNG: small chance to win 2x bet
+  function demoWinForBet(bet) {
+    return Math.random() < 0.15 ? Math.floor(bet * 2) : 0;
+  }
+
+  // Per-game spin wrappers (call applySpin)
+  async function spinEgypt(){ await spinGeneric('egypt','betInput-egypt','egypt-res'); }
+  async function spinPanda(){ await spinGeneric('panda','betInput-panda','panda-res'); }
+  async function spinCandy(){ await spinGeneric('candy','betInput-candy','candy-res'); }
+  async function spinMyanmar(){ await spinGeneric('myanmar','betInput-myanmar','myanmar-res'); }
+  async function spinSpace(){ await spinGeneric('space','betInput-space','space-res'); }
+  async function spinAphogyi(){ await spinGeneric('aphogyi','betInput-aphogyi','aphogyi-res'); }
+  async function spinThameetaw(){ await spinGeneric('thameetaw','betInput-thameetaw','thameetaw-res'); }
+  async function spinKywe(){ await spinGeneric('kywe','betInput-kywe','kywe-res'); }
+  async function spinGates(){ await spinGeneric('gates','betInput-gates','gates-res'); }
+  async function spinStarlight(){ await spinGeneric('starlight','betInput-starlight','starlight-res'); }
+  async function spinSugar(){ await spinGeneric('sugar','betInput-sugar','sugar-res'); }
+  async function spinFortune(){ await spinGeneric('fortune','betInput-fortune','fortune-res'); }
+
+  async function spinGeneric(gameName, betInputId, resultElId) {
+    if (!tgid) { alert('You need to Login first'); return; }
+    const bet = Number(document.getElementById(betInputId).value || 0);
+    if (isNaN(bet) || bet <= 0) { alert('Enter a valid bet'); return; }
+    // disable button to prevent double-spend
+    const btn = document.getElementById('spin-' + gameName) || null;
+    if (btn) btn.disabled = true;
+    // demo RNG
+    const win = demoWinForBet(bet);
+    const res = await applySpin(gameName, bet, win);
+    if (res.ok) {
+      const el = document.getElementById(resultElId);
+      if (el) el.textContent = `Result: ${win>0 ? 'Win '+win : 'No win'}`;
+      if (win > 0) {
+        try { document.getElementById('winSound').play(); } catch(e) {}
+      } else {
+        try { document.getElementById('spinSound').play(); } catch(e) {}
+      }
+    } else {
+      // applySpin already set infoBar for errors
+    }
+    if (btn) btn.disabled = false;
+  }
+
+  // Nav: register all games
+  const gamesMeta = [
+    {id:'game-egypt', title:'Egypt Quest'},
+    {id:'game-panda', title:'Fortune Panda'},
+    {id:'game-candy', title:'Sweet Candy Rush'},
+    {id:'game-myanmar', title:'Myanmar Gold'},
+    {id:'game-space', title:'Space Adventure'},
+    {id:'game-aphogyi', title:'Aphoe Gyi'},
+    {id:'game-thameetaw', title:'Thamee Taw'},
+    {id:'game-kywe', title:'Kywe Festival'},
+    {id:'game-gates', title:'Gates of Olympus'},
+    {id:'game-starlight', title:'Starlight Princess'},
+    {id:'game-sugar', title:'Sugar Rush'},
+    {id:'game-fortune', title:'Fortune Tiger'}
+  ];
+  const nav = document.getElementById('nav');
+  gamesMeta.forEach((g,i)=>{
+    const b=document.createElement('button'); b.textContent=g.title; b.className='small';
+    b.onclick=()=>{switchTo(i)}; nav.appendChild(b);
+  });
+  function switchTo(i){
+    document.querySelectorAll('.game').forEach((el,idx)=>{
+      el.classList.toggle('active', idx===i);
+    });
+  }
+  switchTo(0);
+</script>
+
+<!-- If you have modular per-game scripts that implement visuals only, keep them.
+     They should not perform balance updates directly; use applySpin above. -->
+<!-- <script src="egypt.js"></script> ... -->
+</body>
+</html>

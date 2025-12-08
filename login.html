@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Login — AsiaTiger</title>
+  <style>
+    body { background:#f5f5f5; font-family:Arial; padding:24px; }
+    .box { max-width:420px; margin:60px auto; background:#fff; padding:24px; border-radius:8px; box-shadow:0 1px 6px rgba(0,0,0,0.08); }
+    label { font-weight:bold; display:block; margin-bottom:6px; }
+    input { width:100%; padding:10px; margin-bottom:16px; border:1px solid #ccc; border-radius:6px; }
+    button { width:100%; padding:12px; background:#007bff; color:#fff; border:none; border-radius:6px; font-size:16px; cursor:pointer; }
+    .status { margin-top:16px; text-align:center; font-size:14px; color:#333; }
+    .small { font-size:13px; color:#666; margin-top:8px; }
+  </style>
+</head>
+<body>
+
+<div class="box">
+  <h2 style="text-align:center;">Login</h2>
+
+  <label>ID</label>
+  <input id="uid" type="text" placeholder="Enter your Telegram ID">
+
+  <label>Password</label>
+  <input id="password" type="password" placeholder="Enter password">
+
+  <button id="loginBtn">Login</button>
+  <div id="status" class="status">Status: —</div>
+
+  <div class="small">Use the ID and password provided by admin. If you want to change password, go to Profile → Change Password after login.</div>
+</div>
+
+<!-- Firebase CDN -->
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyDXGN7xdSPFW2Bj_W0WHauUabpcWQKtYKM",
+    authDomain: "asiatiger-c41d3.firebaseapp.com",
+    projectId: "asiatiger-c41d3",
+    storageBucket: "asiatiger-c41d3.firebasestorage.app",
+    messagingSenderId: "595368304934",
+    appId: "1:595368304934:web:ae946ffe0e28e8758261e7"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.firestore();
+
+  document.getElementById('loginBtn').addEventListener('click', async () => {
+    const uid = document.getElementById('uid').value.trim();
+    const password = document.getElementById('password').value;
+    const status = document.getElementById('status');
+
+    if (!uid || !password) {
+      status.textContent = "Status: Enter ID & password";
+      return;
+    }
+
+    status.textContent = "Status: Signing in...";
+
+    // Map Telegram ID to fake email for Firebase Auth
+    const email = `${uid}@asiatiger.local`;
+
+    try {
+      await auth.signInWithEmailAndPassword(email, password);
+      status.textContent = "Status: Login success!";
+      // After login, redirect to games or dashboard
+      window.location.href = '/index.html';
+    } catch (e) {
+      console.error(e);
+      // Friendly error message
+      if (e.code === 'auth/user-not-found') {
+        status.textContent = "Status: Account not found. Ask admin to create it.";
+      } else if (e.code === 'auth/wrong-password') {
+        status.textContent = "Status: Incorrect password.";
+      } else {
+        status.textContent = "Status: Login failed";
+      }
+    }
+  });
+</script>
+
+</body>
+</html>

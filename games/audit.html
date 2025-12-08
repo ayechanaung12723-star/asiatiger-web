@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AsiaTiger — Audit panel</title>
+<style>
+  body{background:#0b0b0b;color:#fff;font-family:Inter,Arial;margin:0;padding:18px}
+  .wrap{max-width:1100px;margin:0 auto}
+  h2{margin:0 0 12px 0}
+  .controls{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+  .input{padding:10px;border-radius:6px;border:1px solid #444;background:#0f0f0f;color:#fff}
+  table{width:100%;border-collapse:collapse;background:#131313;border-radius:12px;overflow:hidden}
+  th,td{padding:10px;border-bottom:1px solid #222;text-align:left}
+  th{color:#9aa0a6}
+  .stat{color:#9aa0a6;margin-top:8px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h2>AsiaTiger — Audit panel</h2>
+
+  <div class="controls">
+    <input id="tgid" class="input" placeholder="TGID (e.g., 6824787323)">
+    <input id="since" type="date" class="input">
+    <button id="refresh" class="input" style="cursor:pointer">Load</button>
+    <button id="export" class="input" style="cursor:pointer">Export CSV</button>
+  </div>
+
+  <table id="tx">
+    <thead>
+      <tr>
+        <th>Time</th>
+        <th>Game</th>
+        <th>Bet</th>
+        <th>Win</th>
+        <th>Prev balance</th>
+        <th>New balance</th>
+        <th>VIP</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <div class="stat" id="info">Enter TGID and click Load</div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyDXGN7xdSPFW2Bj_W0WHauUabpcWQKtYKM",
+    authDomain: "asiatiger-c41d3.firebaseapp.com",
+    projectId: "asiatiger-c41d3",
+    storageBucket: "asiatiger-c41d3.firebasestorage.app",
+    messagingSenderId: "595368304934",
+    appId: "1:595368304934:web:ae946ffe0e28e8758261e7"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+
+  async function loadTx(){
+    const tgid = document.getElementById('tgid').value.trim();
+    const sinceStr = document.getElementById('since').value;
+    if(!tgid){ document.getElementById('info').textContent='Please enter TGID'; return; }
+    document.getElementById('info').textContent='Loading…';
+    try{
+      let q = db.collection('users').doc(tgid).collection('game_tx').orderBy('ts','desc').limit(500);
+      if(sinceStr){
+        const sinceDate = new Date(sinceStr+'T00:00:00');
+        q = db.collection('users').doc(tgid).collection('game_tx')
+             .where('ts','>=', firebase.firestore.Timestamp.fromDate(sinceDate))
+             .orderBy('ts','desc');
+      }
+      const snap = await q.get();
+      const tbody = document.querySelector('#tx tbody');
+      tbody.innerHTML='';
+      snap.forEach(doc=>{
+        const d=doc.data();
+        const ts = d.ts && d.ts.toDate ? d.ts.toDate().toLocaleString() : '—';
+        const tr=document.createElement('tr');
+        tr.innerHTML = `<td>${ts}</td><td>${d.game||'—'}</td><td>${d.bet||0}</td><td>${d.win||0}</td><td>${d.prev_balance||0}</td><td>${d.new_balance||0}</td><td>${d.vip_tier||'—'}</td>`;
+        tbody.appendChild(tr);
+      });
+      document.getElementById('info').textContent = `Loaded ${snap.size} records`;
+    }catch(e){
+      console.error(e);
+      document.getElementById('info').textContent='Error loading';
+    }
+  }
+
+  function exportCSV(){
+    const rows=[['Time','Game','Bet','Win','Prev balance','New balance','VIP']];
+    document.querySelectorAll('#tx tbody tr').forEach(tr=>{
+      const cols=[...tr.children].map(td=>td.textContent);
+      rows.push(cols);
+    });
+    const csv = rows.map(r=>r.map(x=>`"${String(x).replace(/"/g,'""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], {type:'text/csv'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'audit.csv';
+    a.click();
+  }
+
+  document.getElementById('refresh').onclick = loadTx;
+  document.getElementById('export').onclick  = exportCSV;
+</script>
+</body>
+</html>

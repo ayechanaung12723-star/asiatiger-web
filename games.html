@@ -1,0 +1,87 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AsiaTiger Game Launcher</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f4f4f4; margin: 0; padding: 0; }
+    header { background: #000; color: #FFD700; padding: 16px; text-align: center; font-size: 24px; }
+    .container { max-width: 600px; margin: 40px auto; background: #fff; padding: 24px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    .input-group { margin-bottom: 20px; }
+    input { width: 100%; padding: 10px; font-size: 16px; border: 1px solid #ccc; border-radius: 6px; }
+    button { width: 100%; padding: 12px; font-size: 16px; margin-top: 10px; border: none; border-radius: 6px; background: #007bff; color: #fff; cursor: pointer; }
+    .game-buttons button { background: #28a745; margin-bottom: 10px; }
+    .status { text-align: center; margin-top: 20px; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <header>AsiaTiger Game Launcher</header>
+  <div class="container">
+    <div class="input-group">
+      <label>Enter your Telegram ID</label>
+      <input type="text" id="tgid" placeholder="e.g. 6824787323">
+    </div>
+    <div class="input-group">
+      <button onclick="checkBalance()">Check Balance</button>
+    </div>
+    <div class="status" id="balance">Balance: —</div>
+    <div class="status" id="vip">VIP Tier: —</div>
+    <div class="game-buttons">
+      <button onclick="launchGame('slot')">🎰 Play Slot Game</button>
+      <button onclick="launchGame('fish')">🐟 Play Fish Shooting</button>
+      <button onclick="launchGame('card')">🃏 Play Card Game</button>
+    </div>
+  </div>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyDYNX7dSPFW2Bj_W0WHauUabpcWKtYKYM",
+      authDomain: "asiatiger-c41d3.firebaseapp.com",
+      projectId: "asiatiger-c41d3",
+      storageBucket: "asiatiger-c41d3.appspot.com",
+      messagingSenderId: "595363804934",
+      appId: "1:595363804934:web:ae946ff0e82e8785261e7"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    async function checkBalance() {
+      const tgid = document.getElementById("tgid").value.trim();
+      if (!tgid) {
+        document.getElementById("balance").textContent = "Balance: Enter Telegram ID";
+        return;
+      }
+      try {
+        const doc = await db.collection("users").doc(tgid).get();
+        if (doc.exists) {
+          const data = doc.data();
+          document.getElementById("balance").textContent = "Balance: " + (data.coin_balance ?? 0) + " coins";
+          document.getElementById("vip").textContent = "VIP Tier: " + (data.vip_tier ?? "Bronze");
+        } else {
+          document.getElementById("balance").textContent = "Balance: No account found";
+          document.getElementById("vip").textContent = "VIP Tier: —";
+        }
+      } catch (e) {
+        console.error(e);
+        document.getElementById("balance").textContent = "Balance: Error fetching data";
+        document.getElementById("vip").textContent = "VIP Tier: —";
+      }
+    }
+
+    function launchGame(game) {
+      const tgid = document.getElementById("tgid").value.trim();
+      if (!tgid) {
+        alert("Enter your Telegram ID first");
+        return;
+      }
+      window.location.href = `games/${game}.html?tgid=${tgid}`;
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Daily Stats — AsiaTiger</title>
+  <style>
+    body { background:#f6f8fa; font-family:Arial, sans-serif; padding:20px; }
+    .wrap { max-width:1040px; margin:0 auto; }
+    h2 { margin:0 0 16px; }
+    .grid { display:grid; grid-template-columns: repeat(12, 1fr); gap:14px; }
+    .card { background:#fff; border:1px solid #d0d7de; border-radius:10px; padding:16px; }
+    .kpi { grid-column: span 4; }
+    .kpi h3 { margin:0 0 8px; font-size:14px; color:#57606a; }
+    .kpi .val { font-size:24px; font-weight:bold; }
+    .ok { color:#2ea043; } .warn { color:#d1242f; } .neutral { color:#0969da; }
+    .toolbar { display:flex; flex-wrap:wrap; gap:10px; margin-bottom:14px; }
+    input, select, button { padding:8px 10px; border:1px solid #d0d7de; border-radius:6px; }
+    button { background:#0969da; color:#fff; border:none; cursor:pointer; }
+    button.secondary { background:#57606a; }
+    table { width:100%; border-collapse:collapse; background:#fff; border-radius:8px; overflow:hidden; }
+    thead { background:#f0f3f6; }
+    th, td { padding:10px; border-bottom:1px solid #e5e7eb; font-size:14px; }
+    tr:hover { background:#f9fafb; }
+    canvas { width:100%; height:280px; background:#fff; border:1px solid #e5e7eb; border-radius:8px; }
+    .status { margin-top:12px; font-weight:bold; }
+    .flex { display:flex; gap:14px; align-items:center; }
+    .muted { color:#57606a; font-size:12px; }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <h2>Daily Coin Stats</h2>
+
+  <div class="toolbar">
+    <input id="filterAdmin" type="text" placeholder="Filter by admin email">
+    <input id="filterTgid" type="text" placeholder="Filter by Telegram ID">
+    <input id="datePick" type="date">
+    <select id="actionSel">
+      <option value="">All actions</option>
+      <option value="add">Add</option>
+      <option value="remove">Remove</option>
+    </select>
+    <button id="apply">Apply</button>
+    <button id="reset" class="secondary">Reset</button>
+  </div>
+
+  <div class="grid">
+    <div class="card kpi">
+      <h3>Coins added (today)</h3>
+      <div id="kpiAdded" class="val ok">0</div>
+    </div>
+    <div class="card kpi">
+      <h3>Coins removed (today)</h3>
+      <div id="kpiRemoved" class="val warn">0</div>
+    </div>
+    <div class="card kpi">
+      <h3>Net change (today)</h3>
+      <div id="kpiNet" class="val neutral">0</div>
+    </div>
+    <div class="card" style="grid-column: span 7;">
+      <div class="flex">
+        <strong>Recent activity (today)</strong>
+        <span class="muted">bars show amounts per action time</span>
+      </div>
+      <canvas id="chart"></canvas>
+    </div>
+    <div class="card" style="grid-column: span 5;">
+      <strong>Top 10 users by balance</strong>
+      <table>
+        <thead>
+          <tr><th>Telegram ID</th><th>Balance</th><th>VIP</th></tr>
+        </thead>
+        <tbody id="topRows"></tbody>
+      </table>
+    </div>
+    <div class="card" style="grid-column: span 12;">
+      <strong>Today’s admin actions</strong>
+      <table>
+        <thead>
+          <tr>
+            <th>Time</th><th>Admin</th><th>TG ID</th><th>Action</th><th>Amount</th><th>Prev</th><th>New</th>
+          </tr>
+        </thead>
+        <tbody id="logRows"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="status" class="status">Status: —</div>
+</div>
+
+<!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyDXGN7xdSPFW2Bj_W0WHauUabpcWQKtYKM",
+    authDomain: "asiatiger-c41d3.firebaseapp.com",
+    projectId: "asiatiger-c41d3",
+    storageBucket: "asiatiger-c41d3.firebasestorage.app",
+    messagingSenderId: "595368304934",
+    appId: "1:595368304934:web:ae946ffe0e28e8758261e7"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.firestore();
+
+  const statusEl = document.getElementById("status");
+  function setBusy(b) {
+    document.getElementById("apply").disabled = b;
+    document.getElementById("reset").disabled = b;
+  }
+
+  // Auth gate
+  auth.onAuthStateChanged(async user => {
+    if (!user) { window.location.href = "login.html"; return; }
+    const token = await user.getIdTokenResult(true);
+    if (!token.claims.admin) { alert("Access denied: Admin only"); window.location.href = "login.html"; }
+  });
+
+  // Helpers
+  function todayRange(dateStr) {
+    const d = dateStr ? new Date(dateStr) : new Date();
+    const start = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0,0,0,0);
+    const end = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23,59,59,999);
+    return { start, end };
+  }
+  function fmtTs(ts) {
+    if (!ts) return "—";
+    const d = ts.toDate();
+    return d.toLocaleString();
+  }
+  function tierFrom(balance) {
+    if (balance >= 10000) return "Gold";
+    if (balance >= 5000) return "Silver";
+    return "Bronze";
+  }
+
+  // Draw simple bars on canvas
+  function drawBars(canvas, points) {
+    const ctx = canvas.getContext("2d");
+    const W = canvas.width, H = canvas.height;
+    ctx.clearRect(0,0,W,H);
+    // axes
+    ctx.strokeStyle = "#d0d7de";
+    ctx.beginPath();
+    ctx.moveTo(40, 10);
+    ctx.lineTo(40, H-30);
+    ctx.lineTo(W-10, H-30);
+    ctx.stroke();
+
+    if (points.length === 0) return;
+    const maxVal = Math.max(...points.map(p => p.amount));
+    const barWidth = Math.max(10, (W-70)/Math.max(points.length,1)-6);
+
+    points.forEach((p, i) => {
+      const x = 50 + i*(barWidth+6);
+      const h = Math.max(4, (H-50) * (p.amount / Math.max(maxVal,1)));
+      ctx.fillStyle = p.action === "add" ? "#2ea043" : "#d1242f";
+      ctx.fillRect(x, H-30-h, barWidth, h);
+    });
+  }
+
+  async function loadStats() {
+    setBusy(true);
+    statusEl.textContent = "Status: Loading…";
+
+    // Filters
+    const adminF = document.getElementById("filterAdmin").value.trim();
+    const tgidF = document.getElementById("filterTgid").value.trim();
+    const actionF = document.getElementById("actionSel").value;
+    const picked = document.getElementById("datePick").value;
+    const { start, end } = todayRange(picked);
+
+    // Build query for today logs
+    let q = db.collection("admin_logs")
+      .where("timestamp", ">=", firebase.firestore.Timestamp.fromDate(start))
+      .where("timestamp", "<=", firebase.firestore.Timestamp.fromDate(end))
+      .orderBy("timestamp","asc");
+
+    if (adminF) q = q.where("admin_email","==",adminF);
+    if (tgidF) q = q.where("tgid","==",tgidF);
+    if (actionF) q = q.where("action","==",actionF);
+
+    try {
+      const snap = await q.get();
+      const rows = snap.docs.map(d => d.data());
+
+      // KPIs
+      const added = rows.filter(r => r.action === "add").reduce((s,r) => s + (r.amount||0), 0);
+      const removed = rows.filter(r => r.action === "remove").reduce((s,r) => s + (r.amount||0), 0);
+      const net = added - removed;
+      document.getElementById("kpiAdded").textContent = added;
+      document.getElementById("kpiRemoved").textContent = removed;
+      document.getElementById("kpiNet").textContent = net;
+
+      // Chart
+      const points = rows.map(r => ({ action:r.action, amount:r.amount||0, ts:r.timestamp }));
+      drawBars(document.getElementById("chart"), points);
+
+      // Today log table
+      const logEl = document.getElementById("logRows");
+      logEl.innerHTML = "";
+      rows.forEach(r => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${fmtTs(r.timestamp)}</td>
+          <td>${r.admin_email || "—"}</td>
+          <td>${r.tgid || "—"}</td>
+          <td>${r.action || "—"}</td>
+          <td>${r.amount ?? "—"}</td>
+          <td>${r.prev_balance ?? "—"}</td>
+          <td>${r.new_balance ?? "—"}</td>
+        `;
+        logEl.appendChild(tr);
+      });
+
+      // Top 10 users by balance
+      const topSnap = await db.collection("users")
+        .orderBy("coin_balance","desc")
+        .limit(10)
+        .get();
+      const topEl = document.getElementById("topRows");
+      topEl.innerHTML = "";
+      topSnap.docs.forEach(d => {
+        const u = d.data();
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${d.id}</td>
+          <td>${typeof u.coin_balance === "number" ? u.coin_balance : 0}</td>
+          <td>${u.vip_tier || tierFrom(u.coin_balance||0)}</td>
+        `;
+        topEl.appendChild(tr);
+      });
+
+      statusEl.textContent = `Status: Loaded — ${rows.length} actions today`;
+    } catch (e) {
+      console.error(e);
+      statusEl.textContent = "Status: Error loading stats";
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  // Bindings
+  document.getElementById("apply").addEventListener("click", loadStats);
+  document.getElementById("reset").addEventListener("click", () => {
+    document.getElementById("filterAdmin").value = "";
+    document.getElementById("filterTgid").value = "";
+    document.getElementById("datePick").value = "";
+    document.getElementById("actionSel").value = "";
+    loadStats();
+  });
+
+  // Initial load
+  loadStats();
+</script>
+</body>
+</html>

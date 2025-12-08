@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Audit Logs — AsiaTiger</title>
+  <style>
+    body { background:#f6f8fa; font-family:Arial, sans-serif; padding:20px; }
+    .wrap { max-width:960px; margin:0 auto; }
+    h2 { margin:0 0 16px; }
+    .toolbar { display:flex; flex-wrap:wrap; gap:10px; margin-bottom:16px; }
+    input, select, button { padding:8px 10px; border:1px solid #d0d7de; border-radius:6px; }
+    button { background:#0969da; color:#fff; border:none; cursor:pointer; }
+    button.secondary { background:#57606a; }
+    table { width:100%; border-collapse:collapse; background:#fff; border-radius:8px; overflow:hidden; }
+    thead { background:#f0f3f6; }
+    th, td { padding:10px; border-bottom:1px solid #e5e7eb; font-size:14px; }
+    tr:hover { background:#f9fafb; }
+    .status { margin-top:10px; font-weight:bold; }
+    .badge { display:inline-block; padding:2px 8px; border-radius:10px; font-size:12px; color:#fff; }
+    .add { background:#2ea043; }
+    .remove { background:#d1242f; }
+    .pager { display:flex; gap:10px; align-items:center; margin-top:12px; }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <h2>Audit Logs</h2>
+
+  <div class="toolbar">
+    <input id="filterTgid" type="text" placeholder="Filter by Telegram ID">
+    <input id="filterAdmin" type="text" placeholder="Filter by admin email">
+    <input id="dateFrom" type="date">
+    <input id="dateTo" type="date">
+    <select id="actionSel">
+      <option value="">All actions</option>
+      <option value="add">Add</option>
+      <option value="remove">Remove</option>
+    </select>
+    <button id="apply">Apply filters</button>
+    <button id="reset" class="secondary">Reset</button>
+    <button id="export" class="secondary">Export CSV</button>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Time</th>
+        <th>Admin</th>
+        <th>Telegram ID</th>
+        <th>Action</th>
+        <th>Amount</th>
+        <th>Prev</th>
+        <th>New</th>
+      </tr>
+    </thead>
+    <tbody id="rows"></tbody>
+  </table>
+
+  <div class="pager">
+    <button id="prev" class="secondary">Prev</button>
+    <span id="pageInfo">Page 1</span>
+    <button id="next" class="secondary">Next</button>
+  </div>
+
+  <div id="status" class="status">Status: —</div>
+</div>
+
+<!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyDXGN7xdSPFW2Bj_W0WHauUabpcWQKtYKM",
+    authDomain: "asiatiger-c41d3.firebaseapp.com",
+    projectId: "asiatiger-c41d3",
+    storageBucket: "asiatiger-c41d3.firebasestorage.app",
+    messagingSenderId: "595368304934",
+    appId: "1:595368304934:web:ae946ffe0e28e8758261e7"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.firestore();
+  const statusEl = document.getElementById("status");
+  const rowsEl = document.getElementById("rows");
+  const pageInfo = document.getElementById("pageInfo");
+
+  // Auth gate: admin only
+  auth.onAuthStateChanged(async user => {
+    if (!user) { window.location.href = "login.html"; return; }
+    const token = await user.getIdTokenResult(true);
+    if (!token.claims.admin) { alert("Access denied: Admin only"); window.location.href = "login.html"; }
+  });
+
+  // Pagination state
+  let page = 1;
+  let pageSize = 25;
+  let lastDoc = null;
+  let firstPageDoc = null;
+  let prevStack = [];
+
+  function formatTs(ts) {
+    if (!ts) return "—";
+    const d = ts.toDate();
+    return d.toLocaleString();
+  }
+  function badge(action) {
+    const cls = action === "add" ? "add" : "remove";
+    const text = action === "add" ? "Add" : "Remove";
+    return `<span class="badge ${cls}">${text}</span>`;
+  }
+
+  function toCsv(rows) {
+    const header = ["time","admin_email","tgid","action","amount","prev_balance","new_balance"];
+    const lines = [header.join(",")];
+    rows.forEach(r => {
+      const time = formatTs(r.timestamp).replace(/,/g,"");
+      lines.push([time,r.admin_email,r.tgid,r.action,r.amount,r.prev_balance,r.new_balance].join(","));
+    });
+    return lines.join("\n");
+  }
+
+  async function queryLogs({ tgid, admin_email, action, from, to, pagingForward = true }) {
+    let q = db.collection("admin_logs").orderBy("timestamp","desc");
+
+    if (tgid) q = q.where("tgid", "==", tgid);
+    if (admin_email) q = q.where("admin_email", "==", admin_email);
+    if (action) q = q.where("action", "==", action);
+    if (from) q = q.where("timestamp", ">=", firebase.firestore.Timestamp.fromDate(new Date(from)));
+    if (to) {
+      const toDate = new Date(to);
+      toDate.setHours(23,59,59,999);
+      q = q.where("timestamp", "<=", firebase.firestore.Timestamp.fromDate(toDate));
+    }
+
+    if (pagingForward && lastDoc) q = q.startAfter(lastDoc);
+    q = q.limit(pageSize);
+
+    const snap = await q.get();
+    return snap;
+  }
+
+  async function load({ reset = false } = {}) {
+    setBusy(true);
+    statusEl.textContent = "Status: Loading…";
+    if (reset) {
+      page = 1;
+      lastDoc = null;
+      prevStack = [];
+    }
+
+    const filters = {
+      tgid: document.getElementById("filterTgid").value.trim() || null,
+      admin_email: document.getElementById("filterAdmin").value.trim() || null,
+      action: document.getElementById("actionSel").value || null,
+      from: document.getElementById("dateFrom").value || null,
+      to: document.getElementById("dateTo").value || null,
+      pagingForward: lastDoc != null
+    };
+    try {
+      const snap = await queryLogs(filters);
+      const docs = snap.docs;
+      rowsEl.innerHTML = "";
+
+      const rows = docs.map(d => d.data());
+      docs.forEach(d => {
+        const r = d.data();
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${formatTs(r.timestamp)}</td>
+          <td>${r.admin_email || "—"}</td>
+          <td>${r.tgid || "—"}</td>
+          <td>${badge(r.action)}</td>
+          <td>${r.amount ?? "—"}</td>
+          <td>${r.prev_balance ?? "—"}</td>
+          <td>${r.new_balance ?? "—"}</td>
+        `;
+        rowsEl.appendChild(tr);
+      });
+
+      if (docs.length > 0) {
+        if (page === 1) firstPageDoc = docs[0];
+        lastDoc = docs[docs.length - 1];
+      }
+      pageInfo.textContent = `Page ${page}`;
+      statusEl.textContent = `Status: Loaded ${docs.length} entries`;
+
+      // Export bind
+      document.getElementById("export").onclick = () => {
+        const csv = toCsv(rows);
+        const blob = new Blob([csv], { type: "text/csv" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `audit_logs_page${page}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+      };
+    } catch (e) {
+      console.error(e);
+      statusEl.textContent = "Status: Error loading logs";
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function setBusy(busy) {
+    document.getElementById("apply").disabled = busy;
+    document.getElementById("reset").disabled = busy;
+    document.getElementById("prev").disabled = busy;
+    document.getElementById("next").disabled = busy;
+    document.getElementById("export").disabled = busy;
+  }
+
+  document.getElementById("apply").addEventListener("click", () => load({ reset: true }));
+  document.getElementById("reset").addEventListener("click", () => {
+    document.getElementById("filterTgid").value = "";
+    document.getElementById("filterAdmin").value = "";
+    document.getElementById("dateFrom").value = "";
+    document.getElementById("dateTo").value = "";
+    document.getElementById("actionSel").value = "";
+    load({ reset: true });
+  });
+
+  document.getElementById("next").addEventListener("click", async () => {
+    prevStack.push(lastDoc);
+    page += 1;
+    await load();
+  });
+
+  document.getElementById("prev").addEventListener("click", async () => {
+    if (prevStack.length === 0) return;
+    lastDoc = prevStack.pop();
+    page = Math.max(1, page - 1);
+    await load({ reset: true });
+  });
+
+  // Initial load
+  load({ reset: true });
+</script>
+</body>
+</html>

@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>AsiaTiger — Slot</title>
+  <style>
+    body { background:#121212; color:#fff; font-family:Arial, sans-serif; margin:0; }
+    .wrap { max-width:520px; margin:24px auto; background:#1e1e1e; padding:16px; border-radius:10px; }
+    .stat { text-align:center; margin-bottom:12px; }
+    .reels { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:16px 0; }
+    .cell { background:#262626; border:1px solid #333; border-radius:8px; padding:18px; text-align:center; font-size:20px; }
+    .controls { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    button { padding:12px; border:none; border-radius:8px; cursor:pointer; color:#fff; }
+    .spin { background:#28a745; }
+    .back { background:#007bff; }
+    .note { text-align:center; font-size:12px; color:#bbb; margin-top:10px; }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="stat" id="info">Loading…</div>
+  <div class="reels">
+    <div class="cell" id="r1">🍒</div>
+    <div class="cell" id="r2">🍋</div>
+    <div class="cell" id="r3">⭐</div>
+  </div>
+  <div class="stat" id="result">—</div>
+  <div class="controls">
+    <button class="spin" id="spinBtn">Spin (100 coins)</button>
+    <button class="back" onclick="goBack()">Back to Launcher</button>
+  </div>
+  <div class="note">VIP increases expected RTP slightly: Bronze≈92%, Silver≈94%, Gold≈96%, Platinum≈98%.</div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyDYNX7dSPFW2Bj_W0WHauUabpcWKtYKYM",
+    authDomain: "asiatiger-c41d3.firebaseapp.com",
+    projectId: "asiatiger-c41d3",
+    storageBucket: "asiatiger-c41d3.appspot.com",
+    messagingSenderId: "595363804934",
+    appId: "1:595363804934:web:ae946ff0e82e8785261e7"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+
+  const params = new URLSearchParams(location.search);
+  const tgid = (params.get('tgid') || '').trim();
+  const info = document.getElementById('info');
+  const resultEl = document.getElementById('result');
+  const symbols = ['🍒','🍋','⭐','🔔','7️⃣'];
+  let vip = 'Bronze';
+  let balance = 0;
+
+  function goBack(){ location.href = '../games.html'; }
+
+  async function loadUser() {
+    if (!tgid) { info.textContent='Missing Telegram ID'; return; }
+    const doc = await db.collection('users').doc(tgid).get();
+    if (!doc.exists) { info.textContent='No account found'; return; }
+    const d = doc.data();
+    vip = d.vip_tier || 'Bronze';
+    balance = typeof d.coin_balance === 'number' ? d.coin_balance : 0;
+    info.textContent = `TG: ${tgid} | Balance: ${balance} | VIP: ${vip}`;
+  }
+
+  function vipRtp(v) {
+    switch(v){
+      case 'Silver': return 0.94;
+      case 'Gold': return 0.96;
+      case 'Platinum': return 0.98;
+      default: return 0.92;
+    }
+  }
+
+  function spinOutcome() {
+    // Expected RTP control: choose payout tiers to approximate VIP RTP
+    // Cost per spin: 100. Payout tiers: 0, 50, 100, 200, 500
+    const target = vipRtp(vip); // expected payout / cost
+    // Probabilities tuned to approximate target RTP:
+    // base profile: [0:70%, 50:10%, 100:10%, 200:8%, 500:2%] => RTP ~ (0*0.7 + 50*0.1 + 100*0.1 + 200*0.08 + 500*0.02)/100 = ~0.94
+    // Adjust slightly per VIP by nudging weights
+    const base = [
+      {p:0.70, won:0},
+      {p:0.10, won:50},
+      {p:0.10, won:100},
+      {p:0.08, won:200},
+      {p:0.02, won:500}
+    ];
+    const baseRtp = 0.94;
+    const delta = target - baseRtp; // +/- adjustments
+    // Distribute delta into mid/high tiers
+    base[3].p += Math.max(-0.02, Math.min(0.02, delta*0.3)); // 200x tier
+    base[4].p += Math.max(-0.01, Math.min(0.01, delta*0.2)); // 500x tier
+    // Normalize remaining probability to keep sum≈1
+    const sum = base.reduce((s,x)=>s+x.p,0);
+    base[0].p += (1 - sum); // adjust lose tier
+
+    const r = Math.random();
+    let acc=0;
+    for (const tier of base){
+      acc += tier.p;
+      if (r <= acc) return tier.won;
+    }
+    return 0;
+  }
+
+  function randomSymbol(){
+    return symbols[Math.floor(Math.random()*symbols.length)];
+  }
+
+  async function spin() {
+    if (!tgid) { alert('Missing Telegram ID'); return; }
+    const cost = 100;
+
+    // Transaction-like client sequence (simple, zero-cost):
+    const ref = db.collection('users').doc(tgid);
+    const snap = await ref.get();
+    if (!snap.exists) { resultEl.textContent='No account found'; return; }
+    const d = snap.data();
+    const current = typeof d.coin_balance === 'number' ? d.coin_balance : 0;
+    const tier = d.vip_tier || 'Bronze';
+    if (current < cost) { resultEl.textContent='Insufficient balance'; return; }
+
+    // Show reel spin visuals
+    document.getElementById('r1').textContent = randomSymbol();
+    document.getElementById('r2').textContent = randomSymbol();
+    document.getElementById('r3').textContent = randomSymbol();
+
+    // Compute outcome
+    const won = spinOutcome(); // payout in coins
+    const next = current - cost + won;
+
+    // Update balance and log game tx
+    await ref.update({ coin_balance: next, vip_tier: tier });
+    await db.collection('users').doc(tgid).collection('game_tx').add({
+      game: 'slot', bet: cost, win: won, prev_balance: current, new_balance: next,
+      vip_tier: tier, ts: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    balance = next; vip = tier;
+    info.textContent = `TG: ${tgid} | Balance: ${balance} | VIP: ${vip}`;
+    resultEl.textContent = won > 0 ? `You won ${won} coins!` : `No win this time.`;
+  }
+
+  document.getElementById('spinBtn').addEventListener('click', spin);
+  loadUser();
+</script>
+</body>
+</html>

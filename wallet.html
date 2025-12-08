@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>AsiaTiger — Wallet</title>
+
+    <style>
+      body { background:#ECEFF1; font-family: Arial, sans-serif; margin:0; }
+      nav { text-align:center; background:#000; padding:12px; }
+      nav a { color:#FFD700; margin:0 12px; text-decoration:none; font-weight:bold; }
+      .wrap { max-width:420px; margin:32px auto; background:#fff; padding:24px; border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,0.12); }
+      .title { text-align:center; margin-bottom:16px; }
+      .row { margin:12px 0; }
+      .btn { display:inline-block; padding:12px 14px; border:none; border-radius:6px; color:#fff; cursor:pointer; }
+      .btn-in { background:#28a745; }
+      .btn-out { background:#dc3545; }
+      .note { font-size:13px; color:#666; text-align:center; margin-top:12px; }
+      input { width:100%; padding:10px; border:1px solid #ddd; border-radius:6px; font-size:14px; }
+      .balance { font-size:18px; font-weight:bold; text-align:center; margin:16px 0; }
+    </style>
+    <link rel="icon" href="logo.png">
+  </head>
+  <body>
+
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="games/slot.html">Slot</a>
+      <a href="games/fish.html">Fish</a>
+      <a href="games/card.html">Card</a>
+      <a href="wallet.html">Wallet</a>
+    </nav>
+
+    <div class="wrap">
+      <div class="title">
+        <img src="logo.png" alt="AsiaTiger" style="width:120px; display:block; margin:0 auto 8px;">
+        <h2>Wallet</h2>
+      </div>
+
+      <div class="row">
+        <label for="tgid">Enter your Telegram ID</label>
+        <input id="tgid" type="text" placeholder="e.g. 123456789">
+      </div>
+
+      <div class="row" style="text-align:center;">
+        <button class="btn" style="background:#0069d9;" id="checkBtn">Check Balance</button>
+      </div>
+
+      <div class="balance" id="coinBalance">Balance: —</div>
+      <div class="note" id="vipTier">VIP Tier: —</div>
+
+      <div class="row" style="text-align:center;">
+        <button class="btn btn-in" id="cashInBtn">💰 Cash In (Buy Coins)</button>
+        <button class="btn btn-out" id="cashOutBtn">💸 Cash Out (Withdraw)</button>
+      </div>
+
+      <div class="note">For speed: use Wave/KPay and send your Telegram ID correctly.</div>
+    </div>
+
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+
+    <script>
+      const firebaseConfig = {
+        apiKey: "AIzaSyDYNX7dSPFW2Bj_W0WHauUabpcWKtYKYM",
+        authDomain: "asiatiger-c41d3.firebaseapp.com",
+        projectId: "asiatiger-c41d3",
+        storageBucket: "asiatiger-c41d3.appspot.com",
+        messagingSenderId: "595363804934",
+        appId: "1:595363804934:web:ae946ff0e82e8785261e7"
+      };
+      firebase.initializeApp(firebaseConfig);
+      const db = firebase.firestore();
+
+      window.addEventListener('DOMContentLoaded', () => {
+        const TELEGRAM_CASH_IN = "https://t.me/YourCashInAccount";
+        const TELEGRAM_CASH_OUT = "https://t.me/YourCashOutAccount";
+
+        document.getElementById('cashInBtn').addEventListener('click', () => {
+          window.open(TELEGRAM_CASH_IN, '_blank');
+        });
+        document.getElementById('cashOutBtn').addEventListener('click', () => {
+          window.open(TELEGRAM_CASH_OUT, '_blank');
+        });
+
+        const checkBtn = document.getElementById('checkBtn');
+        const tgidInput = document.getElementById('tgid');
+        const balanceEl = document.getElementById('coinBalance');
+        const vipEl = document.getElementById('vipTier');
+
+        checkBtn.addEventListener('click', async () => {
+          const tgid = (tgidInput.value || "").trim();
+          if (!tgid) {
+            balanceEl.textContent = "Balance: enter your Telegram ID first";
+            vipEl.textContent = "VIP Tier: —";
+            return;
+          }
+          try {
+            const docRef = db.collection("users").doc(tgid);
+            const doc = await docRef.get();
+            if (doc.exists) {
+              const data = doc.data();
+              balanceEl.textContent = `Balance: ${data.coin_balance ?? 0} coins`;
+              vipEl.textContent = `VIP Tier: ${data.vip_tier ?? "Bronze"}`;
+            } else {
+              balanceEl.textContent = "Balance: No account found";
+              vipEl.textContent = "VIP Tier: —";
+            }
+          } catch (e) {
+            console.error(e);
+            balanceEl.textContent = "Balance: Unable to fetch data";
+            vipEl.textContent = "VIP Tier: —";
+          }
+        });
+      });
+    </script>
+
+  </body>
+</html>

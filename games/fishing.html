@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AsiaTiger — Fishing</title>
+<style>
+  body{background:#0b0b0b;color:#fff;font-family:Inter,Arial;margin:0;padding:18px}
+  .wrap{max-width:900px;margin:0 auto}
+  .board{background:#131313;padding:16px;border-radius:12px}
+  .stat{color:#9aa0a6;margin-top:8px;text-align:center}
+  .controls{display:flex;gap:8px;justify-content:center;margin:10px 0}
+  .btn{padding:10px 14px;border-radius:8px;border:0;background:#e94e1b;color:#fff;cursor:pointer}
+  .bet-input{padding:10px;border-radius:6px;border:1px solid #444;background:#0f0f0f;color:#fff;width:120px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h2>Fishing Mini</h2>
+  <small id="info" class="stat">Loading…</small>
+  <div class="board">
+    <canvas id="fish-canvas" width="720" height="320" style="background:#001;border-radius:12px;display:block;margin:0 auto"></canvas>
+    <div class="controls">
+      <input type="number" id="betInput-fishing" class="bet-input" min="100" max="3000" step="100" value="100">
+      <button class="btn" onclick="startFishing()">FIRE</button>
+    </div>
+    <div class="stat" id="fishing-res">—</div>
+  </div>
+  <div class="stat">Notes: RNG client-side for demo. Move outcome + balance server-side in production.</div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyDXGN7xdSPFW2Bj_W0WHauUabpcWQKtYKM",
+    authDomain: "asiatiger-c41d3.firebaseapp.com",
+    projectId: "asiatiger-c41d3",
+    storageBucket: "asiatiger-c41d3.firebasestorage.app",
+    messagingSenderId: "595368304934",
+    appId: "1:595368304934:web:ae946ffe0e28e8758261e7"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+  const params = new URLSearchParams(location.search);
+  const tgid = (params.get('tgid') || '').trim();
+  let vip = 'Bronze';
+  let balance = 0;
+  const infoBar = document.getElementById('info');
+
+  async function loadUser() {
+    if (!tgid) { infoBar.textContent = 'Missing Telegram ID'; return; }
+    const doc = await db.collection('users').doc(tgid).get();
+    if (!doc.exists) { infoBar.textContent = 'No account found'; return; }
+    const d = doc.data();
+    vip = d.vip_tier || 'Bronze';
+    balance = typeof d.coin_balance === 'number' ? d.coin_balance : 0;
+    infoBar.textContent = `TG: ${tgid} | Balance: ${balance} | VIP: ${vip}`;
+  }
+  loadUser();
+
+  function vipRtpMultiplier(v){
+    switch(v){
+      case 'Silver': return 1.02;
+      case 'Gold': return 1.04;
+      case 'Platinum': return 1.06;
+      default: return 1.00;
+    }
+  }
+
+  async function applySpin(gameName, betAmount, winAmount) {
+    if (!tgid) { alert('Missing Telegram ID'); return {ok:false}; }
+    const ref = db.collection('users').doc(tgid);
+    const snap = await ref.get();
+    if (!snap.exists) { infoBar.textContent = 'No account found'; return {ok:false}; }
+    const d = snap.data();
+    const current = typeof d.coin_balance === 'number' ? d.coin_balance : 0;
+    const tier = d.vip_tier || 'Bronze';
+    if (isNaN(betAmount) || betAmount < 100 || betAmount > 3000) {
+      alert('Invalid bet amount'); return {ok:false};
+    }
+    if (current < betAmount) {
+      infoBar.textContent = 'Insufficient balance';
+      return {ok:false};
+    }
+    const next = current - betAmount + winAmount;
+    await ref.update({ coin_balance: next, vip_tier: tier });
+    await db.collection('users').doc(tgid).collection('game_tx').add({
+      game: gameName, bet: betAmount, win: winAmount,
+      prev_balance: current, new_balance: next,
+      vip_tier: tier, ts: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    balance = next; vip = tier;
+    infoBar.textContent = `TG: ${tgid} | Balance: ${balance} | VIP: ${vip}`;
+    return {ok:true, next};
+  }
+</script>
+<script src="fishing.js"></script>
+</body>
+</html>
