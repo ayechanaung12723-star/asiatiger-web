@@ -1,21 +1,151 @@
+// games/egypt.js
+// Game adapter for "egypt" theme. Keep generic small — symbols + UI wiring.
+// Exposes window.initEgyptGame(opts)
+
 (function(){
-  const symbols=['🐫','☥','🪙','🔶','🌙','A','K','Q'];
-  const paytable={'🐫':200,'☥':120,'🪙':80,'🔶':40,'🌙':25};
-  const paylines=[[1,1,1,1,1],[0,0,0,0,0],[2,2,2,2,2],[0,1,2,1,0],[2,1,0,1,2]];
-  const reelsEl=document.getElementById('egypt-reels');
-  const payEl=document.getElementById('egypt-pay');
-  if (payEl) payEl.innerHTML=Object.entries(paytable).map(e=>`<div style="padding:6px">${e[0]} ×3+ = ${e[1]}</div>`).join('');
+  const defaultSymbols = ['🏺','🐫','👑','🔶','⭐']; // Egypt-themed emoji
+  function qs(sel) { return document.querySelector(sel); }
+  function qsa(sel) { return Array.from(document.querySelectorAll(sel)); }
 
-  function genReels(){ const r=[]; for(let c=0;c<5;c++){ r[c]=[]; for(let rI=0;rI<3;rI++) r[c].push(symbols[Math.floor(Math.random()*symbols.length)]); } return r; }
-  function render(reels){ if(!reelsEl) return; reelsEl.innerHTML=''; reels.forEach(col=>{ const c=document.createElement('div'); c.className='col'; col.forEach(s=>{ const cell=document.createElement('div'); cell.className='cell'; cell.textContent=s; c.appendChild(cell); }); reelsEl.appendChild(c); }); }
-  function calc(reels){ let total=0; let scat=0; paylines.forEach(line=>{ const sym=reels[0][line[0]]; if(!paytable[sym]) return; let count=1; for(let i=1;i<5;i++){ if(reels[i][line[i]]===sym) count++; else break; } if(count>=3) total += paytable[sym] * (count-2); }); for(let c=0;c<5;c++) for(let r=0;r<3;r++) if(reels[c][r]==='🌙') scat++; if(scat>=3) total += 100 * scat; return {total,scat}; }
+  window.initEgyptGame = function(opts = {}) {
+    const gameId = opts.gameId || 'egypt';
+    const spinEndpoint = opts.spinEndpoint || '/api/spin';
+    const s = opts.selectors || {};
+    const betInput = qs(s.betInput || '#betInput');
+    const spinBtn = qs(s.spinBtn || '#spinBtn');
+    const reelsEls = (s.reels || ['#r1','#r2','#r3']).map(sel => qs(sel));
+    const balanceEl = qs(s.balance || '#balance');
+    const resultEl = qs(s.result || '#result');
+    const statusEl = qs(s.status || '#statusText');
+    const tgidDisplay = qs(s.tgidDisplay || '#tgidDisplay');
+    const demoAuthBtn = qs(s.demoAuthBtn || '#demoAuthBtn');
 
-  window.spinEgypt = async function(){
-    const bet = parseInt(document.getElementById('betInput-egypt').value, 10); if (isNaN(bet)||bet<100||bet>3000){ alert('Invalid bet'); return; }
-    document.getElementById('spinSound').play();
-    const reels=genReels(); render(reels); const res=calc(reels);
-    const win = Math.floor(res.total * vipRtpMultiplier(vip)); if (win>0) document.getElementById('winSound').play();
-    document.getElementById('egypt-res').textContent = res.total>0?`Won ${res.total} coins`:`No win${res.scat>=3?' — Scatter! Free spins unlocked':''}`;
-    await applySpin('slot-egypt', bet, win);
-  }
+    // helpers: read tgid from URL param ?tgid=...
+    function getTgidFromUrl() {
+      try {
+        const p = new URLSearchParams(location.search);
+        const t = p.get('tgid');
+        return t && t.trim() ? t.trim() : null;
+      } catch(e){ return null; }
+    }
+
+    // store demo tgid in-memory (for quick testing)
+    let demoTgid = getTgidFromUrl();
+
+    function setTgidDisplay() {
+      tgidDisplay.textContent = 'TGID: ' + (demoTgid || '—');
+    }
+    setTgidDisplay();
+
+    // spin UI helpers
+    function randomSymbols(n=3) {
+      const out = [];
+      for(let i=0;i<n;i++) out.push(defaultSymbols[Math.floor(Math.random()*defaultSymbols.length)]);
+      return out;
+    }
+
+    function animateStart() {
+      reelsEls.forEach(el => el.classList.add('spinning'));
+    }
+    function animateStop(finalSymbols) {
+      reelsEls.forEach((el, idx) => {
+        el.classList.remove('spinning');
+        el.textContent = finalSymbols[idx] || '❓';
+      });
+    }
+
+    // demo balance default (will update from API if available)
+    let currentBalance = 1000;
+    function updateBalance(v) {
+      currentBalance = Number.isFinite(Number(v)) ? Number(v) : currentBalance;
+      balanceEl.textContent = 'Balance: ' + currentBalance;
+    }
+    updateBalance(currentBalance);
+
+    // demo auth button to set tgid quickly
+    if (demoAuthBtn) {
+      demoAuthBtn.addEventListener('click', () => {
+        const entered = prompt('Enter demo TGID to use as token (example: demo-user)').trim();
+        if (entered) {
+          demoTgid = entered;
+          setTgidDisplay();
+          alert('Demo TGID set. Now SPIN will send Authorization: Bearer ' + demoTgid);
+        }
+      });
+    }
+
+    async function doSpin() {
+      // validate TGID
+      const tgid = demoTgid || getTgidFromUrl();
+      if (!tgid) {
+        alert('Missing TGID. Add ?tgid=YOUR_TGID in URL or click "Set Demo TGID"');
+        return;
+      }
+
+      const bet = Number(betInput.value || 0);
+      if (!Number.isFinite(bet) || bet <= 0) {
+        alert('Enter valid bet');
+        return;
+      }
+      if (bet > currentBalance) {
+        alert('Insufficient balance');
+        return;
+      }
+
+      // start animation
+      statusEl.textContent = 'Spinning…';
+      resultEl.textContent = '';
+      animateStart();
+
+      // call API
+      let resJson = null;
+      try {
+        const resp = await fetch(spinEndpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + tgid
+          },
+          body: JSON.stringify({
+            tgid,
+            game: gameId,
+            bet
+          })
+        });
+        resJson = await resp.json();
+        if (!resp.ok) throw new Error(resJson?.error || 'Server error');
+      } catch (err) {
+        // network / server error -> fallback: local simulation
+        console.warn('spin API failed, using local simulation', err);
+        resJson = {
+          ok: true,
+          reels: randomSymbols(3),
+          prev_balance: currentBalance,
+          new_balance: currentBalance - bet + (Math.random() < 0.15 ? Math.round(bet*2) : 0),
+          win: Math.random() < 0.15 ? Math.round(bet*2) : 0
+        };
+      }
+
+      // stop animation and show result
+      setTimeout(() => {
+        animateStop(resJson.reels || randomSymbols(3));
+        updateBalance(resJson.new_balance ?? currentBalance);
+        if (resJson.win && Number(resJson.win) > 0) {
+          resultEl.textContent = '🎉 WIN: +' + resJson.win;
+        } else {
+          resultEl.textContent = '— No win';
+        }
+        statusEl.textContent = 'Last spin: ' + (new Date()).toLocaleTimeString();
+      }, 900);
+    }
+
+    // attach click
+    if (spinBtn) spinBtn.addEventListener('click', doSpin);
+
+    // expose quick helpers for debugging
+    return {
+      setDemoTgid: (v)=> { demoTgid = v; setTgidDisplay(); },
+      getBalance: ()=> currentBalance
+    };
+  }; // initEgyptGame
 })();
