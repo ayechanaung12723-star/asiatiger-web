@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Candy Slot — AsiaTiger</title>
+<link rel="icon" href="../logo.png" />
+
+<style>
+body{margin:0;background:#071827;color:#e6eef6;font-family:Inter,system-ui,Arial;}
+.container{max-width:600px;margin:auto;padding:20px;}
+header{display:flex;align-items:center;padding:12px 0;flex-wrap:wrap;}
+header img{width:50px;height:50px;border-radius:10px;}
+header h1{margin:0;font-size:1.4rem;font-weight:600;}
+.btn{padding:8px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.1);color:#ffb86b;background:transparent;cursor:pointer;text-decoration:none;font-weight:600;margin-right:8px;}
+#candy-reels{display:flex;justify-content:center;margin-top:20px;}
+#candy-res{margin-top:20px;font-size:16px;font-weight:600;color:#ffb86b;}
+input{padding:8px;border-radius:6px;border:1px solid rgba(255,255,255,0.2);width:100%;margin-top:6px;margin-bottom:12px;background:#0b1220;color:#fff;}
+</style>
+</head>
+<body>
+
+<div class="container">
+<header>
+<img src="../logo.png" />
+<h1 style="margin-left:12px">Candy Slot</h1>
+<div style="margin-left:auto; display:flex;">
+<a class="btn" href="../index.html">Home</a>
+</div>
+</header>
+
+<div>
+<label for="betInput-candy">Bet Amount (100–3000)</label>
+<input type="number" id="betInput-candy" value="100" min="100" max="3000" />
+<button class="btn" onclick="spinCandy()">Spin</button>
+</div>
+
+<div id="candy-reels"></div>
+<div id="candy-res">Place your bet and spin!</div>
+
+<!-- Sound -->
+<audio id="spinSound" src="../sounds/spsin.mp3"></audio>
+<audio id="winSound" src="../sounds/win.mp3"></audio>
+</div>
+
+<!-- JS Logic -->
+<script type="module" src="candy.js"></script>
+
+</body>
+</html>
