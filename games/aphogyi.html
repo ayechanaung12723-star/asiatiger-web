@@ -1,52 +1,83 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Aphogyi Slot — AsiaTiger</title>
-<link rel="icon" href="../logo.png" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Aphogyi Slot — AsiaTiger</title>
 
-<style>
-body{margin:0;background:#071827;color:#e6eef6;font-family:Inter,system-ui,Arial;}
-.container{max-width:600px;margin:auto;padding:20px;}
-header{display:flex;align-items:center;padding:12px 0;flex-wrap:wrap;}
-header img{width:50px;height:50px;border-radius:10px;}
-header h1{margin:0;font-size:1.4rem;font-weight:600;}
-.btn{padding:8px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.1);color:#ffb86b;background:transparent;cursor:pointer;text-decoration:none;font-weight:600;margin-right:8px;}
-#aphogyi-reels{display:flex;justify-content:space-between;margin-top:20px;}
-.col{display:flex;flex-direction:column;}
-.cell{padding:14px;text-align:center;font-size:24px;border:1px solid rgba(255,255,255,0.05);margin:2px;border-radius:6px;background:#0b1220;}
-#aphogyi-res{margin-top:20px;font-size:18px;font-weight:600;color:#ffb86b;}
-input{padding:8px;border-radius:6px;border:1px solid rgba(255,255,255,0.2);width:100%;margin-top:6px;margin-bottom:12px;background:#0b1220;color:#fff;}
-</style>
+  <style>
+    :root{
+      --bg:#071827; --card:#0b1220; --accent:#ffb86b; --muted:#9aa4b2;
+      color-scheme: dark;
+    }
+    body{margin:0;font-family:Inter,system-ui,Arial;background:linear-gradient(180deg,#071021 0%,#071827 100%);color:#e6eef6}
+    .wrap{max-width:920px;margin:28px auto;padding:18px}
+    header{display:flex;align-items:center;gap:12px}
+    header h1{margin:0;font-size:20px}
+    .panel{background:var(--card);padding:14px;border-radius:12px;border:1px solid rgba(255,255,255,0.03)}
+    .controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    .bet-input{width:120px;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:transparent;color:inherit}
+    .btn{padding:10px 14px;border-radius:8px;border:0;cursor:pointer;font-weight:600}
+    .spin-btn{background:var(--accent);color:#000}
+    .reels{display:flex;gap:10px;justify-content:center;margin:18px 0}
+    .col{display:flex;flex-direction:column;gap:6px}
+    .cell{width:50px;height:50px;display:flex;justify-content:center;align-items:center;font-size:26px;background:#0b1220;border-radius:6px}
+    .status{margin-top:10px;color:var(--muted)}
+    .balance{font-weight:700;font-size:18px;margin-left:auto}
+  </style>
 </head>
 <body>
+  <div class="wrap">
+    <header>
+      <h1>Aphogyi Slot — AsiaTiger</h1>
+      <div class="balance" id="balance">Balance: —</div>
+    </header>
 
-<div class="container">
-<header>
-<img src="../logo.png" />
-<h1 style="margin-left:12px">Aphogyi Slot</h1>
-<div style="margin-left:auto; display:flex;">
-<a class="btn" href="../index.html">Home</a>
-</div>
-</header>
+    <div style="height:14px"></div>
 
-<div>
-<label for="betInput-aphogyi">Bet Amount (100–3000)</label>
-<input type="number" id="betInput-aphogyi" value="100" min="100" max="3000" />
-<button class="btn" onclick="spinAphogyi()">Spin</button>
-</div>
+    <div class="panel">
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <div class="controls">
+          <label>Bet</label>
+          <input id="betInput" class="bet-input" type="number" min="100" max="3000" value="100">
+          <button id="spinBtn" class="btn spin-btn">SPIN</button>
+          <button id="demoAuthBtn" class="btn" style="background:#2b6cb0;color:#fff">Set Demo TGID</button>
+        </div>
+        <div style="margin-left:auto;color:var(--muted)" id="tgidDisplay">TGID: —</div>
+      </div>
 
-<div id="aphogyi-reels"></div>
-<div id="aphogyi-res">Place your bet and spin!</div>
+      <div id="aphogyiReels" class="reels"></div>
 
-<!-- Sound -->
-<audio id="spinSound" src="../sounds/spsin.mp3"></audio>
-<audio id="winSound" src="../sounds/win.mp3"></audio>
-</div>
+      <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+        <div id="result" style="font-weight:700"></div>
+        <div class="status" id="statusText">Play for fun — server decides outcome.</div>
+      </div>
+    </div>
+  </div>
 
-<!-- JS Logic -->
-<script type="module" src="aphogyi.js"></script>
+  <!-- per-game adapter -->
+  <script src="./aphogyi.js"></script>
+
+  <script>
+    if (window.initAphogyiGame) {
+      window.initAphogyiGame({
+        gameId: "slot-aphogyi",
+        spinEndpoint: "/api/spin",
+        selectors: {
+          reelsWrap: "#aphogyiReels",
+          betInput: "#betInput",
+          spinBtn: "#spinBtn",
+          balance: "#balance",
+          result: "#result",
+          status: "#statusText",
+          tgidDisplay: "#tgidDisplay",
+          demoAuthBtn: "#demoAuthBtn"
+        }
+      });
+    } else {
+      console.error("aphogyi.js adapter not loaded");
+    }
+  </script>
 
 </body>
 </html>
