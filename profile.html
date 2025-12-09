@@ -1,160 +1,151 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Profile — AsiaTiger</title>
-<link rel="icon" href="logo.png">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AsiaTiger — Profile</title>
+<link rel="icon" href="logo.png" />
 
 <style>
-  body {
-    margin:0;
-    background:#071827;
-    color:#e6eef6;
-    font-family:Inter,system-ui,Arial;
-    padding:24px;
-  }
-  .card {
-    background:#0b1220;
-    padding:20px;
-    border-radius:12px;
-    border:1px solid rgba(255,255,255,0.08);
-    max-width:450px;
-    margin:auto;
-  }
-  h2 { margin-top:0; color:#ffb86b; }
-  .input {
-    width:100%;
-    padding:10px;
-    margin-top:6px;
-    background:#0f172a;
-    border:1px solid rgba(255,255,255,0.08);
-    border-radius:8px;
-    color:#fff;
-  }
-  .btn {
-    margin-top:12px;
-    width:100%;
-    padding:12px;
-    background:#ffb86b;
-    color:#000;
-    border:none;
-    border-radius:8px;
-    font-weight:700;
-    cursor:pointer;
-  }
-  a { color:#ffb86b; text-decoration:none; }
+:root{--bg:#0f1724;--card:#0b1220;--accent:#ffb86b;--muted:#9aa4b2;color-scheme:dark;}
+body{margin:0;background:#071827;color:#e6eef6;font-family:Inter,system-ui,Arial;}
+.container{max-width:600px;margin:auto;padding:24px;}
+header{display:flex;align-items:center;padding:12px 0;flex-wrap:wrap;}
+header img{width:60px;height:60px;border-radius:12px;}
+header h1{margin:0;font-size:1.6rem;font-weight:600;}
+.btn{padding:8px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.1);color:var(--accent);background:transparent;cursor:pointer;text-decoration:none;font-weight:600;margin-right:8px;}
+input, select{padding:8px;border-radius:6px;border:1px solid rgba(255,255,255,0.2);width:100%;margin-top:6px;margin-bottom:12px;background:var(--card);color:#fff;}
+label{font-size:0.9rem;color:var(--muted);}
+section{background:var(--card);padding:16px;margin-top:20px;border-radius:12px;border:1px solid rgba(255,255,255,0.05);}
 </style>
 </head>
-
 <body>
+<div class="container">
+<header>
+<img src="logo.png" />
+<div style="margin-left:12px">
+<h1>Profile</h1>
+<div style="color:var(--muted)">Manage your account & coins</div>
+</div>
+<div style="margin-left:auto; display:flex;">
+<a href="index.html" class="btn">Home</a>
+<button id="logoutBtn" class="btn">Logout</button>
+</div>
+</header>
 
-<div class="card">
-  <h2>Profile</h2>
-  <div>ID: <span id="userId">Loading...</span></div>
-  <br>
+<section>
+<h3>Change Password</h3>
+<label for="newPass">New Password</label>
+<input type="password" id="newPass" placeholder="Enter new password" />
+<button id="changePassBtn" class="btn">Change Password</button>
+</section>
 
-  <h3>🔑 Change Password</h3>
-  <input type="password" id="newPass" class="input" placeholder="New Password">
-  <button class="btn" onclick="changePass()">Change Password</button>
+<section>
+<h3>Transfer Coins</h3>
+<label for="recipient">Recipient ID</label>
+<input type="text" id="recipient" placeholder="User ID" />
+<label for="amount">Amount</label>
+<input type="number" id="amount" placeholder="Coin amount" />
+<button id="transferBtn" class="btn">Send Coins</button>
+</section>
 
-  <br><br>
-  <h3>💸 Transfer Coins</h3>
-  <input type="text" id="sendTo" class="input" placeholder="Send to User ID">
-  <input type="number" id="amount" class="input" placeholder="Amount">
-  <button class="btn" onclick="sendCoins()">Send Coins</button>
-
-  <br><br>
-  <a href="index.html">⭠ Back</a>
+<section>
+<h3>Balance</h3>
+<div id="balanceDisplay" style="font-size:24px;font-weight:600">0</div>
+<div id="tgidDisplay" style="color:var(--muted)">Not logged in</div>
+</section>
 </div>
 
 <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js";
-  import { 
-    getAuth,
-    onAuthStateChanged,
-    updatePassword,
-    signOut
-  } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-auth.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js";
+import { getAuth,onAuthStateChanged,signOut,updatePassword } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-auth.js";
+import { getFirestore, doc, getDoc, updateDoc, runTransaction } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js";
 
-  import {
-    getFirestore,
-    doc,
-    getDoc,
-    setDoc,
-    updateDoc,
-  } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js";
+const firebaseConfig = {
+  apiKey:"AIzaSyDXGN7xdSPFW2Bj_W0WHauUabpcWQKtYKM",
+  authDomain:"asiatiger-c41d3.firebaseapp.com",
+  projectId:"asiatiger-c41d3",
+  storageBucket:"asiatiger-c41d3.firebasestorage.app",
+  messagingSenderId:"595368304934",
+  appId:"1:595368304934:web:ae946ffe0e28e8758261e7"
+};
 
-  const firebaseConfig = {
-    apiKey:"AIzaSyDXGN7xdSPFW2Bj_W0WHauUabpcWQKtYKM",
-    authDomain:"asiatiger-c41d3.firebaseapp.com",
-    projectId:"asiatiger-c41d3",
-    storageBucket:"asiatiger-c41d3.firebasestorage.app",
-    messagingSenderId:"595368304934",
-    appId:"1:595368304934:web:ae946ffe0e28e8758261e7"
-  };
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
 
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const db = getFirestore(app);
+const logoutBtn = document.getElementById("logoutBtn");
+const changePassBtn = document.getElementById("changePassBtn");
+const transferBtn = document.getElementById("transferBtn");
+const balanceEl = document.getElementById("balanceDisplay");
+const tgidEl = document.getElementById("tgidDisplay");
 
-  let currentUser = null;
+let currentUser = null;
+let localBalance = 0;
 
-  onAuthStateChanged(auth, async (user) => {
-    if (!user) {
-      alert("Please login first!");
-      window.location.href = "login.html";
-      return;
-    }
-    currentUser = user;
-    document.getElementById("userId").textContent = user.uid;
-  });
+onAuthStateChanged(auth,user=>{
+  if(user){
+    currentUser=user;
+    tgidEl.textContent="ID: "+user.uid;
+    loadBalance();
+  } else {
+    alert("Please login!");
+    window.location.href="login.html";
+  }
+});
 
-  // -------------------------
-  // PASSWORD CHANGE
-  // -------------------------
-  window.changePass = async () => {
-    const newPass = document.getElementById("newPass").value;
-    if (newPass.length < 6) return alert("At least 6 characters");
+logoutBtn.onclick=()=>signOut(auth);
 
-    try {
-      await updatePassword(currentUser, newPass);
-      alert("Password updated!");
-    } catch (e) {
-      alert("Error: " + e.message);
-    }
-  };
+async function loadBalance(){
+  if(!currentUser) return;
+  const ref = doc(db,"users",currentUser.uid);
+  const snap = await getDoc(ref);
+  if(snap.exists()){
+    localBalance = Number(snap.data().coin_balance||0);
+    balanceEl.textContent=localBalance;
+  }
+}
 
-  // -------------------------
-  // COIN TRANSFER SYSTEM
-  // -------------------------
-  window.sendCoins = async () => {
-    const to = document.getElementById("sendTo").value.trim();
-    const amt = Number(document.getElementById("amount").value);
+changePassBtn.onclick=async()=>{
+  const newPass=document.getElementById("newPass").value;
+  if(!newPass){ alert("Enter password"); return; }
+  try{
+    await updatePassword(currentUser,newPass);
+    alert("Password updated!");
+    document.getElementById("newPass").value="";
+  }catch(e){ alert("Error: "+e.message); }
+};
 
-    if (!to || amt <= 0) return alert("Invalid input");
+transferBtn.onclick=async()=>{
+  const recipient=document.getElementById("recipient").value.trim();
+  const amount=Number(document.getElementById("amount").value);
+  if(!recipient || amount<=0){ alert("Invalid input"); return; }
+  if(amount>localBalance){ alert("Insufficient balance"); return; }
 
-    const fromID = currentUser.uid;
+  try{
+    await runTransaction(db,async(t)=>{
+      const senderRef=doc(db,"users",currentUser.uid);
+      const receiverRef=doc(db,"users",recipient);
 
-    const fromRef = doc(db, "users", fromID);
-    const toRef = doc(db, "users", to);
+      const senderSnap=await t.get(senderRef);
+      if(!senderSnap.exists()) throw "Sender not found";
+      const senderBal=Number(senderSnap.data().coin_balance||0);
+      if(senderBal<amount) throw "Insufficient balance";
 
-    const fromSnap = await getDoc(fromRef);
-    if (!fromSnap.exists()) return alert("Your account data missing!");
+      const receiverSnap=await t.get(receiverRef);
+      if(!receiverSnap.exists()) throw "Recipient not found";
+      const receiverBal=Number(receiverSnap.data().coin_balance||0);
 
-    const toSnap = await getDoc(toRef);
-    if (!toSnap.exists()) return alert("Receiver not found!");
+      t.update(senderRef,{coin_balance:senderBal-amount});
+      t.update(receiverRef,{coin_balance:receiverBal+amount});
+    });
 
-    const fromBal = fromSnap.data().balance || 0;
-    if (fromBal < amt) return alert("Not enough balance!");
-
-    await updateDoc(fromRef, { balance: fromBal - amt });
-    await updateDoc(toRef, { balance: (toSnap.data().balance || 0) + amt });
-
-    alert("Transfer complete!");
-  };
-
+    alert("Transfer successful!");
+    loadBalance();
+    document.getElementById("recipient").value="";
+    document.getElementById("amount").value="";
+  }catch(e){ alert("Error: "+e); }
+};
 </script>
-
 </body>
 </html>
