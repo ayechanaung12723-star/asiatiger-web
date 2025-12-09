@@ -20,13 +20,13 @@
       color:#e6eef6;
       font-family:Inter,system-ui,Arial;
     }
-
     .container { max-width:1100px; margin:auto; padding:24px; }
 
-    header { display:flex; align-items:center; padding:12px 0; }
+    header {
+      display:flex; align-items:center; padding:12px 0; flex-wrap:wrap;
+    }
     header img { width:60px;height:60px;border-radius:12px; }
     header h1 { margin:0;font-size:1.6rem;font-weight:600; }
-
     .btn {
       padding:8px 14px;
       border-radius:8px;
@@ -37,44 +37,39 @@
       text-decoration:none;
       font-weight:600;
     }
-
     nav { margin-top:20px; display:flex; gap:12px; flex-wrap:wrap; }
 
     .category-box {
-      display:flex;
-      justify-content:space-between;
-      margin-top:20px;
-      gap:14px;
-      flex-wrap:wrap;
+      display:flex; justify-content:space-between; margin-top:20px; gap:14px; flex-wrap:wrap;
     }
     .cat {
-      background:var(--card);
-      flex:1;
-      padding:18px;
-      border-radius:12px;
-      text-align:center;
-      font-size:20px;
-      color:var(--accent);
-      cursor:pointer;
-      border:1px solid rgba(255,255,255,0.06);
+      background:var(--card); flex:1; padding:18px; border-radius:12px; text-align:center;
+      font-size:20px; color:var(--accent); cursor:pointer; border:1px solid rgba(255,255,255,0.06);
+      transition: transform 0.2s, box-shadow 0.2s;
     }
+    .cat:hover { transform:translateY(-3px); box-shadow:0 4px 12px rgba(255,255,255,0.15); }
 
-    .games-list { margin-top:20px; display:flex; flex-direction:column; gap:10px; }
-    .gameItem {
-      background:var(--card);
-      padding:16px;
-      border-radius:12px;
-      border:1px solid rgba(255,255,255,0.05);
-      cursor:pointer;
+    .games-list {
+      margin-top:20px; display:grid;
+      grid-template-columns:repeat(auto-fill,minmax(120px,1fr));
+      gap:12px;
     }
+    .gameItem {
+      background:var(--card); padding:16px; border-radius:12px; border:1px solid rgba(255,255,255,0.05);
+      cursor:pointer; text-align:center; font-weight:600; color:var(--accent); transition:0.2s;
+    }
+    .gameItem:hover { transform:translateY(-3px); box-shadow:0 4px 12px rgba(255,255,255,0.15); }
 
     .balanceBox {
-      background:var(--card);
-      margin-top:25px;
-      padding:14px;
-      border-radius:12px;
-      border:1px solid rgba(255,255,255,0.05);
-      max-width:300px;
+      background:var(--card); margin-top:25px; padding:14px; border-radius:12px; border:1px solid rgba(255,255,255,0.05);
+      max-width:320px;
+    }
+
+    @media(max-width:600px){
+      header h1{font-size:1.4rem;}
+      .btn{padding:6px 10px;font-size:0.85rem;}
+      .cat{font-size:16px; padding:14px;}
+      .gameItem{padding:12px;font-size:0.9rem;}
     }
   </style>
 </head>
@@ -116,160 +111,101 @@
 
 </div>
 
-
-<!-- Firebase + Logic -->
 <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js";
-  import { 
-    getAuth,
-    onAuthStateChanged,
-    signOut
-  } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-auth.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js";
+import { getAuth,onAuthStateChanged,signOut } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-auth.js";
 
-  const firebaseConfig = {
-    apiKey:"AIzaSyDXGN7xdSPFW2Bj_W0WHauUabpcWQKtYKM",
-    authDomain:"asiatiger-c41d3.firebaseapp.com",
-    projectId:"asiatiger-c41d3",
-    storageBucket:"asiatiger-c41d3.firebasestorage.app",
-    messagingSenderId:"595368304934",
-    appId:"1:595368304934:web:ae946ffe0e28e8758261e7"
-  };
+const firebaseConfig = {
+  apiKey:"AIzaSyDXGN7xdSPFW2Bj_W0WHauUabpcWQKtYKM",
+  authDomain:"asiatiger-c41d3.firebaseapp.com",
+  projectId:"asiatiger-c41d3",
+  storageBucket:"asiatiger-c41d3.firebasestorage.app",
+  messagingSenderId:"595368304934",
+  appId:"1:595368304934:web:ae946ffe0e28e8758261e7"
+};
 
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
 
-  const loginBtn = document.getElementById("loginBtn");
-  const logoutBtn = document.getElementById("logoutBtn");
-  const profileBtn = document.getElementById("profileBtn");
-  const balanceEl = document.getElementById("balanceDisplay");
-  const tgidEl = document.getElementById("tgidDisplay");
-  const gamesList = document.getElementById("gamesList");
+const loginBtn = document.getElementById("loginBtn");
+const logoutBtn = document.getElementById("logoutBtn");
+const profileBtn = document.getElementById("profileBtn");
+const balanceEl = document.getElementById("balanceDisplay");
+const tgidEl = document.getElementById("tgidDisplay");
+const gamesList = document.getElementById("gamesList");
 
-  let localBalance = 1000;
+let localBalance = 1000;
 
+const ALL_GAMES = [
+  { name:"Aphogyi", file:"aphogyi.js", category:"slot" },
+  { name:"Candy", file:"candy.js", category:"slot" },
+  { name:"Egypt", file:"egypt.html", category:"slot" },
+  { name:"Gates", file:"gates.js", category:"slot" },
+  { name:"Myanmar", file:"myanmar.js", category:"slot" },
+  { name:"Panda", file:"panda.js", category:"slot" },
+  { name:"Space", file:"space.js", category:"slot" },
+  { name:"Starlight", file:"starlight.js", category:"slot" },
+  { name:"Sugar", file:"sugar.js", category:"slot" },
+  { name:"Thameetaw", file:"thameetaw.js", category:"slot" },
+  { name:"Fishing Master", file:"fishing.html", category:"fish" },
+  { name:"Card Game", file:"card.html", category:"card" }
+];
 
-  /* ===========================
-        ALL GAME LIST
-  ============================ */
-  const ALL_GAMES = [
-    { name:"Aphogyi", file:"aphogyi.js", category:"slot" },
-    { name:"Candy", file:"candy.js", category:"slot" },
-    { name:"Egypt", file:"egypt.html", category:"slot" },
-    { name:"Gates", file:"gates.js", category:"slot" },
-    { name:"Myanmar", file:"myanmar.js", category:"slot" },
-    { name:"Panda", file:"panda.js", category:"slot" },
-    { name:"Space", file:"space.js", category:"slot" },
-    { name:"Starlight", file:"starlight.js", category:"slot" },
-    { name:"Sugar", file:"sugar.js", category:"slot" },
-    { name:"Thameetaw", file:"thameetaw.js", category:"slot" },
+window.goCategory = function(cat){
+  renderGames(ALL_GAMES.filter(g => g.category===cat));
+};
 
-    { name:"Fishing Master", file:"fishing.html", category:"fish" },
-
-    { name:"Card Game", file:"card.html", category:"card" }
-  ];
-
-
-  /* ===========================
-        LOAD CATEGORY
-  ============================ */
-  window.goCategory = function(cat) {
-    renderGames(ALL_GAMES.filter(g => g.category === cat));
-  };
-
-  function renderGames(list) {
-    gamesList.innerHTML = "";
-    list.forEach(g => {
-      const div = document.createElement("div");
-      div.className = "gameItem";
-      div.textContent = g.name;
-      div.onclick = () => openGame("games/" + g.file);
-      gamesList.appendChild(div);
-    });
-  }
-
-  // Default = show all games
-  renderGames(ALL_GAMES);
-
-
-  /* ===========================
-         AUTH STATE
-  ============================ */
-  onAuthStateChanged(auth, (user) => {
-    if (user) {
-      window.currentTgid = user.uid;
-
-      loginBtn.style.display = "none";
-      logoutBtn.style.display = "inline-block";
-      profileBtn.style.display = "inline-block";
-
-      tgidEl.textContent = "ID: " + user.uid;
-    } else {
-      window.currentTgid = null;
-
-      loginBtn.style.display = "inline-block";
-      logoutBtn.style.display = "none";
-      profileBtn.style.display = "none";
-
-      tgidEl.textContent = "Not logged in";
-    }
+function renderGames(list){
+  gamesList.innerHTML="";
+  list.forEach(g=>{
+    const div = document.createElement("div");
+    div.className="gameItem";
+    div.textContent = g.name;
+    div.onclick=()=>openGame("games/"+g.file);
+    gamesList.appendChild(div);
   });
+}
+renderGames(ALL_GAMES);
 
-  logoutBtn.onclick = () => signOut(auth);
+onAuthStateChanged(auth,user=>{
+  if(user){
+    window.currentTgid=user.uid;
+    loginBtn.style.display="none";
+    logoutBtn.style.display="inline-block";
+    profileBtn.style.display="inline-block";
+    tgidEl.textContent="ID: "+user.uid;
+  } else {
+    window.currentTgid=null;
+    loginBtn.style.display="inline-block";
+    logoutBtn.style.display="none";
+    profileBtn.style.display="none";
+    tgidEl.textContent="Not logged in";
+  }
+});
 
+logoutBtn.onclick=()=>signOut(auth);
 
-  /* ===========================
-       SPIN API (shared)
-  ============================ */
-  window.doSpin = async function(game, bet) {
-    if (!window.currentTgid) {
-      alert("Login Required");
-      return null;
-    }
+window.doSpin=async function(game,bet){
+  if(!window.currentTgid){ alert("Login Required"); return null; }
+  try{
+    const res = await fetch("/api/spin",{
+      method:"POST",
+      headers:{ "Content-Type":"application/json" },
+      body: JSON.stringify({ tgid:window.currentTgid, game, bet, clientSeed:"browser" })
+    });
+    const data = await res.json();
+    if(!res.ok){ alert("Spin error: "+data.error); return null; }
+    localBalance = localBalance - bet + data.payout;
+    balanceEl.textContent=localBalance;
+    return data;
+  } catch(e){ alert("API error"); return null; }
+};
 
-    try {
-      const res = await fetch("/api/spin", {
-        method:"POST",
-        headers:{ "Content-Type":"application/json" },
-        body: JSON.stringify({
-          tgid: window.currentTgid,
-          game,
-          bet,
-          clientSeed:"browser"
-        })
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        alert("Spin error: " + data.error);
-        return null;
-      }
-
-      // update fake local balance
-      localBalance = localBalance - bet + data.payout;
-      balanceEl.textContent = localBalance;
-
-      return data;
-    }
-    catch(err){
-      alert("API error");
-      return null;
-    }
-  };
-
-
-  /* ===========================
-        OPEN GAME
-  ============================ */
-  window.openGame = function(url) {
-    if (window.currentTgid) {
-      window.location.href = url + "?tgid=" + window.currentTgid;
-    } else {
-      alert("Please login to play!");
-    }
-  };
-
+window.openGame=function(url){
+  if(window.currentTgid){
+    window.location.href=url+"?tgid="+window.currentTgid;
+  } else { alert("Please login to play!"); }
+};
 </script>
-
 </body>
 </html>
