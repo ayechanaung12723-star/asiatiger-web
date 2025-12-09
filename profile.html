@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Profile — AsiaTiger</title>
+<link rel="icon" href="logo.png">
+
+<style>
+  body {
+    margin:0;
+    background:#071827;
+    color:#e6eef6;
+    font-family:Inter,system-ui,Arial;
+    padding:24px;
+  }
+  .card {
+    background:#0b1220;
+    padding:20px;
+    border-radius:12px;
+    border:1px solid rgba(255,255,255,0.08);
+    max-width:450px;
+    margin:auto;
+  }
+  h2 { margin-top:0; color:#ffb86b; }
+  .input {
+    width:100%;
+    padding:10px;
+    margin-top:6px;
+    background:#0f172a;
+    border:1px solid rgba(255,255,255,0.08);
+    border-radius:8px;
+    color:#fff;
+  }
+  .btn {
+    margin-top:12px;
+    width:100%;
+    padding:12px;
+    background:#ffb86b;
+    color:#000;
+    border:none;
+    border-radius:8px;
+    font-weight:700;
+    cursor:pointer;
+  }
+  a { color:#ffb86b; text-decoration:none; }
+</style>
+</head>
+
+<body>
+
+<div class="card">
+  <h2>Profile</h2>
+  <div>ID: <span id="userId">Loading...</span></div>
+  <br>
+
+  <h3>🔑 Change Password</h3>
+  <input type="password" id="newPass" class="input" placeholder="New Password">
+  <button class="btn" onclick="changePass()">Change Password</button>
+
+  <br><br>
+  <h3>💸 Transfer Coins</h3>
+  <input type="text" id="sendTo" class="input" placeholder="Send to User ID">
+  <input type="number" id="amount" class="input" placeholder="Amount">
+  <button class="btn" onclick="sendCoins()">Send Coins</button>
+
+  <br><br>
+  <a href="index.html">⭠ Back</a>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js";
+  import { 
+    getAuth,
+    onAuthStateChanged,
+    updatePassword,
+    signOut
+  } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-auth.js";
+
+  import {
+    getFirestore,
+    doc,
+    getDoc,
+    setDoc,
+    updateDoc,
+  } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey:"AIzaSyDXGN7xdSPFW2Bj_W0WHauUabpcWQKtYKM",
+    authDomain:"asiatiger-c41d3.firebaseapp.com",
+    projectId:"asiatiger-c41d3",
+    storageBucket:"asiatiger-c41d3.firebasestorage.app",
+    messagingSenderId:"595368304934",
+    appId:"1:595368304934:web:ae946ffe0e28e8758261e7"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  let currentUser = null;
+
+  onAuthStateChanged(auth, async (user) => {
+    if (!user) {
+      alert("Please login first!");
+      window.location.href = "login.html";
+      return;
+    }
+    currentUser = user;
+    document.getElementById("userId").textContent = user.uid;
+  });
+
+  // -------------------------
+  // PASSWORD CHANGE
+  // -------------------------
+  window.changePass = async () => {
+    const newPass = document.getElementById("newPass").value;
+    if (newPass.length < 6) return alert("At least 6 characters");
+
+    try {
+      await updatePassword(currentUser, newPass);
+      alert("Password updated!");
+    } catch (e) {
+      alert("Error: " + e.message);
+    }
+  };
+
+  // -------------------------
+  // COIN TRANSFER SYSTEM
+  // -------------------------
+  window.sendCoins = async () => {
+    const to = document.getElementById("sendTo").value.trim();
+    const amt = Number(document.getElementById("amount").value);
+
+    if (!to || amt <= 0) return alert("Invalid input");
+
+    const fromID = currentUser.uid;
+
+    const fromRef = doc(db, "users", fromID);
+    const toRef = doc(db, "users", to);
+
+    const fromSnap = await getDoc(fromRef);
+    if (!fromSnap.exists()) return alert("Your account data missing!");
+
+    const toSnap = await getDoc(toRef);
+    if (!toSnap.exists()) return alert("Receiver not found!");
+
+    const fromBal = fromSnap.data().balance || 0;
+    if (fromBal < amt) return alert("Not enough balance!");
+
+    await updateDoc(fromRef, { balance: fromBal - amt });
+    await updateDoc(toRef, { balance: (toSnap.data().balance || 0) + amt });
+
+    alert("Transfer complete!");
+  };
+
+</script>
+
+</body>
+</html>
