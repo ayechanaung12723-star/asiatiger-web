@@ -1,33 +1,32 @@
 import * as admin from "firebase-admin";
 
+function cleanKey(k) {
+  if (!k) return null;
+  return k.replace(/\\n/g, "\n");
+}
+
 if (!admin.apps.length) {
   const projectId = process.env.FIREBASE_PROJECT_ID;
   const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
-  const privateKey = process.env.FIREBASE_PRIVATE_KEY;
+  const privateKey = cleanKey(process.env.FIREBASE_PRIVATE_KEY);
 
   if (!projectId || !clientEmail || !privateKey) {
-    console.error("❌ Missing Firebase environment variables");
-  }
-
-  let fixedKey = privateKey;
-  try {
-    // Handle escaped newlines
-    fixedKey = privateKey.replace(/\\n/g, "\n");
-  } catch (e) {
-    console.error("❌ Private key replace() failed", e);
-  }
-
-  try {
-    admin.initializeApp({
-      credential: admin.credential.cert({
-        projectId,
-        clientEmail,
-        privateKey: fixedKey,
-      }),
+    console.error("❌ Firebase ENV Missing", {
+      projectId: !!projectId,
+      clientEmail: !!clientEmail,
+      privateKey: !!privateKey
     });
-  } catch (error) {
-    console.error("🔥 Firebase Admin init error:", error);
+    throw new Error("Firebase Admin ENV Missing");
   }
+
+  admin.initializeApp({
+    credential: admin.credential.cert({
+      projectId,
+      clientEmail,
+      privateKey,
+    }),
+    databaseURL: `https://${projectId}.firebaseio.com`,
+  });
 }
 
 export const db = admin.firestore();
