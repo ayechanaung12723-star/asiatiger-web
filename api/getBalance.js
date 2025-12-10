@@ -1,24 +1,28 @@
-import { db } from "./firebaseAdmin";
+import { db } from "./firebaseAdmin.js";
 
 export default async function handler(req, res) {
-  const { gameId } = req.query;
+  const { tgid } = req.query;
 
-  if (!gameId) {
-    return res.status(400).json({ error: "gameId required" });
+  if (!tgid) {
+    return res.status(400).json({ error: "tgid required" });
   }
 
   try {
-    const doc = await db.collection("users").doc(gameId).get();
+    const doc = await db.collection("users").doc(String(tgid)).get();
 
     if (!doc.exists) {
       return res.status(404).json({ error: "User not found" });
     }
 
-    res.status(200).json({
-      balance: doc.data().balance,
-      username: doc.data().username,
+    return res.status(200).json({
+      balance: doc.data().balance ?? 0,
+      username: doc.data().username ?? "",
     });
+
   } catch (e) {
-    res.status(500).json({ error: "Server error", details: e.message });
+    return res.status(500).json({
+      error: "Server error",
+      details: e.message,
+    });
   }
 }

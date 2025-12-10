@@ -136,17 +136,19 @@ const gamesList = document.getElementById("gamesList");
 
 let localBalance = 1000;
 
+/* FIXED — All games now use .html pages */
 const ALL_GAMES = [
-  { name:"Aphogyi", file:"aphogyi.js", category:"slot" },
-  { name:"Candy", file:"candy.js", category:"slot" },
+  { name:"Aphogyi", file:"aphogyi.html", category:"slot" },
+  { name:"Candy", file:"candy.html", category:"slot" },
   { name:"Egypt", file:"egypt.html", category:"slot" },
-  { name:"Gates", file:"gates.js", category:"slot" },
-  { name:"Myanmar", file:"myanmar.js", category:"slot" },
-  { name:"Panda", file:"panda.js", category:"slot" },
-  { name:"Space", file:"space.js", category:"slot" },
-  { name:"Starlight", file:"starlight.js", category:"slot" },
-  { name:"Sugar", file:"sugar.js", category:"slot" },
-  { name:"Thameetaw", file:"thameetaw.js", category:"slot" },
+  { name:"Gates", file:"gates.html", category:"slot" },
+  { name:"Myanmar", file:"myanmar.html", category:"slot" },
+  { name:"Panda", file:"panda.html", category:"slot" },
+  { name:"Space", file:"space.html", category:"slot" },
+  { name:"Starlight", file:"starlight.html", category:"slot" },
+  { name:"Sugar", file:"sugar.html", category:"slot" },
+  { name:"Thameetaw", file:"thameetaw.html", category:"slot" },
+
   { name:"Fishing Master", file:"fishing.html", category:"fish" },
   { name:"Card Game", file:"card.html", category:"card" }
 ];
@@ -184,22 +186,6 @@ onAuthStateChanged(auth,user=>{
 });
 
 logoutBtn.onclick=()=>signOut(auth);
-
-window.doSpin=async function(game,bet){
-  if(!window.currentTgid){ alert("Login Required"); return null; }
-  try{
-    const res = await fetch("/api/spin",{
-      method:"POST",
-      headers:{ "Content-Type":"application/json" },
-      body: JSON.stringify({ tgid:window.currentTgid, game, bet, clientSeed:"browser" })
-    });
-    const data = await res.json();
-    if(!res.ok){ alert("Spin error: "+data.error); return null; }
-    localBalance = localBalance - bet + data.payout;
-    balanceEl.textContent=localBalance;
-    return data;
-  } catch(e){ alert("API error"); return null; }
-};
 
 window.openGame=function(url){
   if(window.currentTgid){
