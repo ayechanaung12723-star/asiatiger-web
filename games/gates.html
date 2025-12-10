@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Gates of Fortune — AsiaTiger</title>
+<link rel="icon" href="../logo.png"/>
+<style>
+  :root{
+    --bg:#071827; --card:#0b1220; --accent:#ffb86b; --muted:#9aa4b2;
+    --glass: rgba(255,255,255,0.03);
+    color-scheme:dark;
+  }
+  html,body{height:100%;margin:0;font-family:Inter,system-ui,Arial;background:linear-gradient(180deg,#071021 0%,#071827 100%);color:#e6eef6}
+  .wrap{max-width:980px;margin:18px auto;padding:18px}
+  header{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  header h1{margin:0;font-size:20px}
+  .meta{margin-left:auto;text-align:right;color:var(--muted)}
+  .panel{background:var(--card);padding:14px;border-radius:12px;border:1px solid var(--glass);margin-top:12px}
+  .controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:center}
+  .bet-input{width:110px;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:transparent;color:inherit;text-align:center}
+  .btn{padding:10px 14px;border-radius:10px;border:0;cursor:pointer;font-weight:700;background:linear-gradient(180deg,#ffb86b,#ff9f43);color:#000}
+  .btn.secondary{background:transparent;border:1px solid var(--glass);color:var(--accent);font-weight:600}
+  .reels{display:flex;justify-content:center;margin-top:14px}
+  .col{display:flex;flex-direction:column;gap:6px;margin:2px}
+  .cell{width:50px;height:50px;display:flex;justify-content:center;align-items:center;font-size:24px;background:#0b1220;border-radius:6px}
+  .status{margin-top:12px;text-align:center;color:var(--muted)}
+  .result{font-weight:800;text-align:center;margin-top:8px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Gates of Fortune</h1>
+    <div class="meta">
+      <div id="balanceDisplay">Balance: —</div>
+      <div id="tgidDisplay" class="muted">TGID: —</div>
+    </div>
+  </header>
+
+  <div class="panel">
+    <div class="controls">
+      <label class="muted">Bet</label>
+      <input id="betInput-gates" class="bet-input" type="number" min="100" max="3000" step="100" value="200"/>
+      <button id="spinBtn-gates" class="btn">SPIN</button>
+    </div>
+
+    <div class="reels" id="gates-reels"></div>
+
+    <div class="result" id="gates-res">Good luck — server decides outcome.</div>
+    <div class="status" id="statusText-gates"></div>
+  </div>
+</div>
+
+<audio id="spinSound" src="../sounds/spin.mp3" preload="auto"></audio>
+<audio id="winSound" src="../sounds/win.mp3" preload="auto"></audio>
+
+<script type="module">
+(function(){
+  const symbols = ['⚡','👑','💎','🔥','⭐','A','K','Q'];
+  const pay = {'⚡':200,'👑':120,'💎':80,'🔥':40,'⭐':20};
+  const cols = 6, rows = 5;
+
+  const reelsEl = document.getElementById('gates-reels');
+  const betInput = document.getElementById('betInput-gates');
+  const spinBtn = document.getElementById('spinBtn-gates');
+  const balanceEl = document.getElementById('balanceDisplay');
+  const tgidEl = document.getElementById('tgidDisplay');
+  const resultEl = document.getElementById('gates-res');
+  const spinSound = document.getElementById('spinSound');
+  const winSound = document.getElementById('winSound');
+
+  let tgid = null;
+  let balance = 0;
+  let vip = 'Bronze';
+
+  function vipRtpMultiplier(v){ 
+    if(!v) return 1; 
+    v = String(v).toLowerCase();
+    if(v.includes('platinum')) return 1.18;
+    if(v.includes('gold')) return 1.12;
+    if(v.includes('silver')) return 1.06;
+    return 1;
+  }
+
+  function genGrid(){
+    const g = [];
+    for (let c=0;c<cols;c++){
+      g[c] = [];
+      for (let r=0;r<rows;r++){
+        g[c][r] = symbols[Math.floor(Math.random()*symbols.length)];
+      }
+    }
+    return g;
+  }
+
+  function render(g){
+    if(!reelsEl) return;
+    reelsEl.innerHTML = '';
+    g.forEach(col=>{
+      const c = document.createElement('div');
+      c.className='col';
+      col.forEach(s=>{
+        const d = document.createElement('div');
+        d.className='cell';
+        d.textContent = s;
+        c.appendChild(d);
+      });
+      reelsEl.appendChild(c);
+    });
+  }
+
+  function calc(grid){
+    let total = 0;
+    for(let r=0;r<rows;r++){
+      const first = grid[0][r];
+      if(!pay[first]) continue;
+      let count = 1;
+      for(let c=1;c<cols;c++){
+        if(grid[c][r]===first) count++;
+        else break;
+      }
+      if(count>=3) total += pay[first]*(count-2);
+    }
+    return total;
+  }
+
+  async function fetchBalance(){
+    if(!tgid) return;
+    try{
+      const res = await fetch(`/api/getBalance?tgid=${encodeURIComponent(tgid)}`);
+      if(!res.ok) throw new Error('fetch failed');
+      const j = await res.json();
+      balance = Number(j.balance||0);
+      vip = j.vip_tier||vip;
+      balanceEl.textContent = 'Balance: '+balance;
+    } catch(e){
+      balanceEl.textContent = 'Balance: '+balance;
+    }
+  }
+
+  async function applySpin(game, bet, win){
+    if(!tgid) return;
+    try{
+      const res = await fetch('/api/spin', {
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+tgid},
+        body:JSON.stringify({ tgid, game, bet })
+      });
+      const data = await res.json();
+      if(res.ok && typeof data.new_balance!=='undefined'){
+        balance = Number(data.new_balance);
+        balanceEl.textContent = 'Balance: '+balance;
+      }
+    } catch(e){}
+  }
+
+  async function spinGates(){
+    const bet = Number(betInput.value||0);
+    if(isNaN(bet)||bet<100||bet>3000){ alert('Invalid bet'); return; }
+    try{ spinSound.currentTime=0; spinSound.play(); }catch(e){}
+    
+    const grid = genGrid();
+    render(grid);
+
+    const raw = calc(grid);
+    const win = Math.floor(raw*vipRtpMultiplier(vip));
+    if(win>0) try{winSound.currentTime=0;winSound.play();}catch(e){}
+
+    resultEl.textContent = raw>0?`Won ${raw} coins`:'No win';
+    await applySpin('slot-gates', bet, win);
+  }
+
+  spinBtn.addEventListener('click', spinGates);
+
+  (async function init(){
+    const p = new URLSearchParams(location.search);
+    tgid = p.get('tgid') || null;
+    tgidEl.textContent = tgid?'TGID: '+tgid:'TGID: — (add ?tgid=your_id)';
+    render(genGrid());
+    await fetchBalance();
+  })();
+
+  window.spinGates = spinGates;
+
+})();
+</script>
+</body>
+</html>
