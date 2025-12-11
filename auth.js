@@ -1,4 +1,18 @@
-// Firebase init
+// auth.js
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import {
+  getAuth,
+  signInWithEmailAndPassword,
+  signOut
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+import {
+  getFirestore,
+  doc,
+  getDoc
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+// Firebase Config
 const firebaseConfig = {
   apiKey: "AIzaSyDXGN7xdSPFW2Bj_W0WHauUabpcWQKtYKM",
   authDomain: "asiatiger-c41d3.firebaseapp.com",
@@ -8,31 +22,47 @@ const firebaseConfig = {
   appId: "1:595368304934:web:ae946ffe0e28e8758261e7"
 };
 
-firebase.initializeApp(firebaseConfig);
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
 
-const auth = firebase.auth();
-const db = firebase.firestore();
+// =============================================
+// User Login (tgid + password)
+// =============================================
+export async function userLogin(tgid, password) {
+  try {
+    const ref = doc(db, "users", tgid);
+    const snap = await getDoc(ref);
 
-// Admin check
-export function requireAdmin() {
-  auth.onAuthStateChanged(async (user) => {
-    if (!user) {
-      window.location.href = "login.html";
-      return;
-    }
-    const token = await user.getIdTokenResult(true);
-    if (!token.claims.admin) {
-      alert("Access denied: Admin only");
-      window.location.href = "login.html";
-    }
-  });
+    if (!snap.exists()) return { success: false, error: "User not found" };
+
+    const data = snap.data();
+    if (data.password !== password)
+      return { success: false, error: "Wrong password" };
+
+    localStorage.setItem("user_tgid", tgid);
+    return { success: true, data };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
 }
 
+// =============================================
+// Admin Login
+// =============================================
+export async function adminLogin(email, password) {
+  try {
+    await signInWithEmailAndPassword(auth, email, password);
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+}
+
+// =============================================
 // Logout
-export function logout() {
-  auth.signOut().then(() => {
-    window.location.href = "login.html";
-  }).catch(err => console.error("Logout failed:", err));
+// =============================================
+export async function logout() {
+  localStorage.removeItem("user_tgid");
+  await signOut(auth);
 }
-
-export { auth, db };

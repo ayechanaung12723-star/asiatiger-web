@@ -1,197 +1,74 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>AsiaTiger — Home</title>
-  <link rel="icon" href="logo.png" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AsiaTiger</title>
 
   <style>
-    :root {
-      --bg:#0f1724;
-      --card:#0b1220;
-      --accent:#ffb86b;
-      --muted:#9aa4b2;
-      color-scheme:dark;
-    }
-    body {
-      margin:0;
-      background:#071827;
-      color:#e6eef6;
-      font-family:Inter,system-ui,Arial;
-    }
-    .container { max-width:1100px; margin:auto; padding:24px; }
-
-    header {
-      display:flex; align-items:center; padding:12px 0; flex-wrap:wrap;
-    }
-    header img { width:60px;height:60px;border-radius:12px; }
-    header h1 { margin:0;font-size:1.6rem;font-weight:600; }
-    .btn {
-      padding:8px 14px;
-      border-radius:8px;
-      border:1px solid rgba(255,255,255,0.1);
-      color:var(--accent);
-      background:transparent;
-      cursor:pointer;
-      text-decoration:none;
-      font-weight:600;
-    }
-    nav { margin-top:20px; display:flex; gap:12px; flex-wrap:wrap; }
-
-    .category-box {
-      display:flex; justify-content:space-between; margin-top:20px; gap:14px; flex-wrap:wrap;
-    }
-    .cat {
-      background:var(--card); flex:1; padding:18px; border-radius:12px; text-align:center;
-      font-size:20px; color:var(--accent); cursor:pointer; border:1px solid rgba(255,255,255,0.06);
-      transition: transform 0.2s, box-shadow 0.2s;
-    }
-    .cat:hover { transform:translateY(-3px); box-shadow:0 4px 12px rgba(255,255,255,0.15); }
-
-    .games-list {
-      margin-top:20px; display:grid;
-      grid-template-columns:repeat(auto-fill,minmax(120px,1fr));
-      gap:12px;
-    }
-    .gameItem {
-      background:var(--card); padding:16px; border-radius:12px; border:1px solid rgba(255,255,255,0.05);
-      cursor:pointer; text-align:center; font-weight:600; color:var(--accent); transition:0.2s;
-    }
-    .gameItem:hover { transform:translateY(-3px); box-shadow:0 4px 12px rgba(255,255,255,0.15); }
-
-    .balanceBox {
-      background:var(--card); margin-top:25px; padding:14px; border-radius:12px; border:1px solid rgba(255,255,255,0.05);
-      max-width:320px;
-    }
-
-    @media(max-width:600px){
-      header h1{font-size:1.4rem;}
-      .btn{padding:6px 10px;font-size:0.85rem;}
-      .cat{font-size:16px; padding:14px;}
-      .gameItem{padding:12px;font-size:0.9rem;}
-    }
+    body { font-family: sans-serif; }
+    #logo { width: 160px; margin: 20px auto; display: block; }
   </style>
 </head>
 
 <body>
-<div class="container">
 
-  <!-- HEADER -->
-  <header>
-    <img src="logo.png" />
-    <div style="margin-left:12px">
-      <h1>AsiaTiger</h1>
-      <div style="color:var(--muted)">Slot • Fish • Card</div>
-    </div>
+  <img id="logo" src="logo.png" alt="LOGO" />
 
-    <div style="margin-left:auto; display:flex; gap:10px;">
-      <a id="loginBtn" class="btn" href="login.html">Login</a>
-      <a id="profileBtn" class="btn" href="profile.html" style="display:none;">Profile</a>
-      <button id="logoutBtn" class="btn" style="display:none;">Logout</button>
-    </div>
-  </header>
-
-  <!-- CATEGORY -->
-  <div class="category-box">
-    <div class="cat" onclick="goCategory('slot')">🎰 Slot</div>
-    <div class="cat" onclick="goCategory('fish')">🎣 Fish</div>
-    <div class="cat" onclick="goCategory('card')">🃏 Card</div>
+  <!-- Login Form -->
+  <div>
+    <input id="login_email" placeholder="Admin Email" />
+    <input id="login_pass" type="password" placeholder="Password" />
+    <button id="login_btn">Login</button>
+    <div id="login_error" style="color:red;"></div>
   </div>
 
-  <!-- GAME LIST -->
-  <div class="games-list" id="gamesList"></div>
+  <h2>Games</h2>
+  <div id="game_list"></div>
 
-  <!-- BALANCE -->
-  <div class="balanceBox">
-    <div style="font-size:13px;color:var(--muted)">Balance</div>
-    <div id="balanceDisplay" style="font-size:24px;font-weight:600">0</div>
-    <div id="tgidDisplay" style="font-size:12px;color:var(--muted)">Not logged in</div>
-  </div>
+  <!-- ============================= -->
+  <!-- Firebase + My Auth Code       -->
+  <!-- ============================= -->
+  <script type="module">
+    import "./auth.js";
 
-</div>
+    import {
+      userLogin,
+      adminLogin
+    } from "./auth.js";
 
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js";
-import { getAuth,onAuthStateChanged,signOut } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-auth.js";
+    // Example admin login button usage
+    document.getElementById("login_btn").addEventListener("click", async () => {
+      const email = document.getElementById("login_email").value;
+      const pass = document.getElementById("login_pass").value;
 
-const firebaseConfig = {
-  apiKey:"AIzaSyDXGN7xdSPFW2Bj_W0WHauUabpcWQKtYKM",
-  authDomain:"asiatiger-c41d3.firebaseapp.com",
-  projectId:"asiatiger-c41d3",
-  storageBucket:"asiatiger-c41d3.firebasestorage.app",
-  messagingSenderId:"595368304934",
-  appId:"1:595368304934:web:ae946ffe0e28e8758261e7"
-};
+      const res = await adminLogin(email, pass);
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
+      if (!res.success) {
+        document.getElementById("login_error").textContent = res.error;
+      } else {
+        document.getElementById("login_error").textContent = "Logged in!";
+      }
+    });
 
-const loginBtn = document.getElementById("loginBtn");
-const logoutBtn = document.getElementById("logoutBtn");
-const profileBtn = document.getElementById("profileBtn");
-const balanceEl = document.getElementById("balanceDisplay");
-const tgidEl = document.getElementById("tgidDisplay");
-const gamesList = document.getElementById("gamesList");
+    // Load games from JSON
+    async function loadGames() {
+      const res = await fetch("./games.json");
+      const games = await res.json();
 
-let localBalance = 1000;
+      let html = "";
+      games.forEach(g => {
+        html += `
+          <div style="padding:10px;border:1px solid #ddd;margin:10px;">
+            <b>${g.title}</b> <br>
+            <img src="${g.img}" width="120">
+          </div>`;
+      });
 
-/* FIXED — All games now use .html pages */
-const ALL_GAMES = [
-  { name:"Aphogyi", file:"aphogyi.html", category:"slot" },
-  { name:"Candy", file:"candy.html", category:"slot" },
-  { name:"Egypt", file:"egypt.html", category:"slot" },
-  { name:"Gates", file:"gates.html", category:"slot" },
-  { name:"Myanmar", file:"myanmar.html", category:"slot" },
-  { name:"Panda", file:"panda.html", category:"slot" },
-  { name:"Space", file:"space.html", category:"slot" },
-  { name:"Starlight", file:"starlight.html", category:"slot" },
-  { name:"Sugar", file:"sugar.html", category:"slot" },
-  { name:"Thameetaw", file:"thameetaw.html", category:"slot" },
+      document.getElementById("game_list").innerHTML = html;
+    }
 
-  { name:"Fishing Master", file:"fishing.html", category:"fish" },
-  { name:"Card Game", file:"card.html", category:"card" }
-];
-
-window.goCategory = function(cat){
-  renderGames(ALL_GAMES.filter(g => g.category===cat));
-};
-
-function renderGames(list){
-  gamesList.innerHTML="";
-  list.forEach(g=>{
-    const div = document.createElement("div");
-    div.className="gameItem";
-    div.textContent = g.name;
-    div.onclick=()=>openGame("games/"+g.file);
-    gamesList.appendChild(div);
-  });
-}
-renderGames(ALL_GAMES);
-
-onAuthStateChanged(auth,user=>{
-  if(user){
-    window.currentTgid=user.uid;
-    loginBtn.style.display="none";
-    logoutBtn.style.display="inline-block";
-    profileBtn.style.display="inline-block";
-    tgidEl.textContent="ID: "+user.uid;
-  } else {
-    window.currentTgid=null;
-    loginBtn.style.display="inline-block";
-    logoutBtn.style.display="none";
-    profileBtn.style.display="none";
-    tgidEl.textContent="Not logged in";
-  }
-});
-
-logoutBtn.onclick=()=>signOut(auth);
-
-window.openGame=function(url){
-  if(window.currentTgid){
-    window.location.href=url+"?tgid="+window.currentTgid;
-  } else { alert("Please login to play!"); }
-};
-</script>
+    loadGames();
+  </script>
 </body>
 </html>

@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Login</title>
+  <style>
+    body { font-family: Arial; background:#121826; color:white; text-align:center; padding-top:80px; }
+    .box { background:#1e2636; padding:30px; width:320px; margin:auto; border-radius:10px; }
+    input { width:100%; padding:10px; margin:10px 0; border-radius:6px; border:none; }
+    button { width:100%; padding:10px; border:none; border-radius:6px; background:#4c8bf5; color:white; cursor:pointer; }
+  </style>
+</head>
+<body>
+
+<div class="box">
+  <h2>Admin Login</h2>
+  <input id="email" type="email" placeholder="Admin Email">
+  <input id="password" type="password" placeholder="Password">
+  <button id="loginBtn">Login</button>
+</div>
+
+<script type="module">
+import { adminLogin } from "./auth.js";
+
+document.getElementById("loginBtn").onclick = async () => {
+  const email = document.getElementById("email").value.trim();
+  const pw = document.getElementById("password").value.trim();
+
+  if (!email || !pw) {
+    alert("Fill all fields");
+    return;
+  }
+
+  const res = await adminLogin(email, pw);
+
+  if (!res.success) {
+    alert("Login Failed: " + res.error);
+  } else {
+    window.location.href = "admin.html";
+  }
+};
+</script>
+
+</body>
+</html>

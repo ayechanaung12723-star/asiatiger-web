@@ -1,139 +1,222 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>AsiaTiger — Admin Panel</title>
-
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AsiaTiger Admin Panel</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f0f2f5;
-      margin: 0;
-      padding: 0;
-    }
-    .header {
-      background: #007bff;
-      color: #fff;
-      padding: 16px;
-      font-size: 20px;
-      font-weight: bold;
-    }
-    .container {
-      max-width: 1100px;
-      margin: 20px auto;
-      background: #fff;
-      padding: 20px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-      border-radius: 8px;
-    }
-    h2 {
-      margin-top: 0;
-      color: #333;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 20px;
-    }
-    th, td {
-      padding: 10px;
-      border-bottom: 1px solid #ddd;
-      text-align: left;
-    }
-    th {
-      background: #eee;
-    }
-    .logout-btn {
-      float: right;
-      background: #dc3545;
-      padding: 8px 14px;
-      border-radius: 6px;
-      color: white;
-      cursor: pointer;
-    }
+    body { margin:0; font-family: Arial, sans-serif; background:#eef2f7; }
+    .topbar { background:#202a44; color:#fff; padding:14px 20px; display:flex; justify-content:space-between; align-items:center; }
+    .topbar h2 { margin:0; }
+    .logout { background:#d9534f; border:none; padding:8px 14px; border-radius:6px; color:#fff; cursor:pointer; }
+    .container { max-width:900px; margin:20px auto; background:#fff; padding:20px; border-radius:10px; box-shadow:0 2px 8px rgba(0,0,0,0.08); }
+    h3 { margin-top:0; }
+    .section { border:1px solid #eee; padding:16px; border-radius:8px; background:#fafcff; margin-bottom:24px; }
+    label { font-weight:bold; margin-top:8px; display:block; }
+    input, select { width:100%; padding:10px; margin:8px 0 14px; border-radius:6px; border:1px solid #ccc; }
+    button { padding:10px 18px; border:none; border-radius:6px; cursor:pointer; color:#fff; font-size:14px; }
+    .btn-primary { background:#0275d8; }
+    .btn-green { background:#5cb85c; flex:1; }
+    .btn-red { background:#d9534f; flex:1; }
+    .row { display:flex; gap:10px; }
+    #status { margin-top:18px; font-weight:bold; text-align:center; }
+    .valueBox { padding:10px; background:#f3f6ff; border-radius:6px; border:1px solid #dde3f0; margin-bottom:10px; }
   </style>
 </head>
 <body>
 
-<div class="header">
-  AsiaTiger — Admin Panel
-  <span id="logoutBtn" class="logout-btn">Logout</span>
+<div class="topbar">
+  <h2>AsiaTiger Admin Panel</h2>
+  <button class="logout" id="logoutBtn">Logout</button>
 </div>
 
 <div class="container">
-  <h2>Admin Dashboard</h2>
-  <p>Status: <span id="status">Loading...</span></p>
 
-  <h3>WavePay / KBZPay Reports</h3>
-  <table>
-    <thead>
-      <tr>
-        <th>User ID</th>
-        <th>Amount</th>
-        <th>Payment Method</th>
-        <th>Screenshot</th>
-        <th>Time</th>
-      </tr>
-    </thead>
-    <tbody id="reportTable"></tbody>
-  </table>
+  <!-- USER LOOKUP -->
+  <div class="section">
+    <h3>User Lookup</h3>
+    <label>Telegram ID</label>
+    <input id="tgid" type="text" placeholder="e.g. 6824784321" />
+    <button id="checkUser" class="btn-primary">Check User</button>
+
+    <label>Balance</label>
+    <div id="balance" class="valueBox">—</div>
+
+    <label>VIP Tier</label>
+    <div id="vip" class="valueBox">—</div>
+
+    <label>Amount</label>
+    <input id="amount" type="number" placeholder="e.g. 1000" />
+
+    <div class="row">
+      <button id="addCoins" class="btn-green">Add Coins</button>
+      <button id="removeCoins" class="btn-red">Remove Coins</button>
+    </div>
+  </div>
+
+  <!-- CREATE ACCOUNT REQUEST -->
+  <div class="section">
+    <h3>Create Account Request</h3>
+    <label>Telegram ID</label>
+    <input id="new_tgid" type="text" />
+
+    <label>Password</label>
+    <input id="new_password" type="text" />
+
+    <label>Initial Coins</label>
+    <input id="new_coins" type="number" />
+
+    <button id="createRequest" class="btn-primary" style="width:100%">Submit Request</button>
+  </div>
+
+  <div id="status">Status: —</div>
+
 </div>
 
 <script type="module">
-  // 🔥 IMPORT FIREBASE AUTH & FIRESTORE
-  import { auth, db, requireAdmin } from './auth.js';
-  import {
-    collection,
-    getDocs,
-    query,
-    orderBy
-  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-  import { signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+/* ===========================
+   Firebase Import
+=========================== */
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {
+  getAuth, signOut, onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import {
+  getFirestore, doc, getDoc, setDoc, addDoc, collection
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-  // 1️⃣ PROTECT PAGE
-  requireAdmin(); // Auto redirect if not admin
+/* ===========================
+   Firebase Config (YOUR PROJECT)
+=========================== */
+const firebaseConfig = {
+  apiKey: "AIzaSyDXGN7xdSPFW2Bj_W0WHauUabpcWQKtYKM",
+  authDomain: "asiatiger-c41d3.firebaseapp.com",
+  projectId: "asiatiger-c41d3"
+};
 
-  // 2️⃣ LOAD REPORTS
-  async function loadReports() {
-    document.getElementById('status').textContent = "Loading reports...";
-    try {
-      const q = query(
-        collection(db, "reports"),
-        orderBy("time", "desc")
-      );
-      const snap = await getDocs(q);
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
 
-      let html = "";
-      snap.forEach(doc => {
-        const d = doc.data();
-        html += `
-          <tr>
-            <td>${d.userId || "-"}</td>
-            <td>${d.amount || 0}</td>
-            <td>${d.method || "-"}</td>
-            <td>${d.imageUrl ? `<a href="${d.imageUrl}" target="_blank">View</a>` : "-"}</td>
-            <td>${d.time?.seconds ? new Date(d.time.seconds * 1000).toLocaleString() : "-"}</td>
-          </tr>
-        `;
-      });
-
-      document.getElementById('reportTable').innerHTML = html;
-      document.getElementById('status').textContent = "Loaded ✔";
-
-    } catch (err) {
-      console.error(err);
-      document.getElementById('status').textContent = "Failed to load";
-    }
+/* ===========================
+   1. PROTECT ADMIN PAGE
+=========================== */
+onAuthStateChanged(auth, async (user) => {
+  if (!user) {
+    window.location.href = "login.html";
+    return;
   }
 
-  loadReports();
+  const token = await user.getIdTokenResult(true);
 
-  // 3️⃣ LOGOUT
-  document.getElementById("logoutBtn").addEventListener("click", async () => {
+  if (!token.claims.admin) {
+    alert("Access denied: You are not an Admin.");
     await signOut(auth);
     window.location.href = "login.html";
+  }
+});
+
+/* ===========================
+   2. LOGOUT
+=========================== */
+document.getElementById("logoutBtn").addEventListener("click", async () => {
+  await signOut(auth);
+  window.location.href = "login.html";
+});
+
+/* ===========================
+   3. USER LOOKUP
+=========================== */
+document.getElementById("checkUser").addEventListener("click", async () => {
+  const tg = document.getElementById("tgid").value.trim();
+  if (!tg) return setStatus("Enter TG ID");
+
+  const ref = doc(db, "users", tg);
+  const snap = await getDoc(ref);
+
+  if (!snap.exists()) {
+    document.getElementById("balance").textContent = "—";
+    document.getElementById("vip").textContent = "—";
+    return setStatus("No user found");
+  }
+
+  const data = snap.data();
+  document.getElementById("balance").textContent = data.coin_balance ?? 0;
+  document.getElementById("vip").textContent = data.vip_tier ?? "Bronze";
+  setStatus("User found");
+});
+
+/* ===========================
+   4. VIP Tier Logic
+=========================== */
+function getTier(balance) {
+  if (balance >= 500000) return "Platinum";
+  if (balance >= 100000) return "Gold";
+  if (balance >= 30000) return "Silver";
+  if (balance >= 5000) return "Bronze";
+  return "Bronze";
+}
+
+/* ===========================
+   5. ADD / REMOVE COINS
+=========================== */
+async function updateCoins(sign) {
+  const tg = document.getElementById("tgid").value.trim();
+  const amt = parseInt(document.getElementById("amount").value || "0");
+
+  if (!tg) return setStatus("Enter TG ID");
+  if (!amt || amt <= 0) return setStatus("Enter amount");
+
+  const ref = doc(db, "users", tg);
+  const snap = await getDoc(ref);
+
+  let current = snap.exists() ? snap.data().coin_balance ?? 0 : 0;
+  const next = current + amt * sign;
+
+  if (next < 0) return setStatus("Cannot go negative");
+
+  await setDoc(ref, {
+    coin_balance: next,
+    vip_tier: getTier(next)
+  }, { merge: true });
+
+  document.getElementById("balance").textContent = next;
+  document.getElementById("vip").textContent = getTier(next);
+
+  setStatus(sign > 0 ? "Coins added" : "Coins removed");
+}
+
+document.getElementById("addCoins").addEventListener("click", () => updateCoins(+1));
+document.getElementById("removeCoins").addEventListener("click", () => updateCoins(-1));
+
+/* ===========================
+   6. CREATE USER REQUEST
+=========================== */
+document.getElementById("createRequest").addEventListener("click", async () => {
+  const tgid = document.getElementById("new_tgid").value.trim();
+  const pw = document.getElementById("new_password").value.trim();
+  const coins = parseInt(document.getElementById("new_coins").value || "0");
+
+  if (!tgid || !pw) return setStatus("Fill all fields");
+
+  await addDoc(collection(db, "admin_requests"), {
+    type: "create_user",
+    tgid,
+    password: pw,
+    initial_coins: coins,
+    status: "pending",
+    created_at: new Date()
   });
+
+  setStatus("Request submitted");
+});
+
+/* ===========================
+   STATUS DISPLAY
+=========================== */
+function setStatus(msg) {
+  document.getElementById("status").textContent = "Status: " + msg;
+}
 </script>
 
 </body>
