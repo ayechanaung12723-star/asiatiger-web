@@ -1,315 +1,139 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Admin Panel — AsiaTiger</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AsiaTiger — Admin Panel</title>
+
   <style>
-    body { background:#f5f5f5; font-family:Arial, sans-serif; padding:24px; }
-    .panel { max-width:820px; margin:0 auto; background:#fff; padding:24px; border-radius:10px; box-shadow:0 2px 8px rgba(0,0,0,0.08); }
-    h2 { text-align:center; margin:0 0 16px; }
-    label { font-weight:bold; display:block; margin-bottom:6px; }
-    input, select, .value, textarea { width:100%; padding:10px; border:1px solid #ddd; border-radius:8px; margin-bottom:14px; background:#fafafa; }
-    .value { background:#f9fbff; }
-    .row { display:flex; gap:12px; }
-    button { padding:10px 16px; border:none; border-radius:8px; color:#fff; cursor:pointer; }
-    .primary { background:#007bff; }
-    .green { background:#28a745; flex:1; }
-    .red { background:#dc3545; flex:1; }
-    .status { text-align:center; margin-top:16px; font-weight:bold; }
-    .danger { color:#c0392b; }
-    .section { margin-bottom:20px; padding:12px; border-radius:8px; background:#fcfcff; border:1px solid #eef; }
-    .small { font-size:13px; color:#666; margin-top:-8px; margin-bottom:12px; }
-    .flex-between { display:flex; justify-content:space-between; gap:12px; align-items:center; }
-    table { width:100%; border-collapse:collapse; margin-top:12px; }
-    th, td { padding:8px; border:1px solid #eee; text-align:left; font-size:13px; }
-    #rtp { font-weight:bold; margin-top:8px; }
+    body {
+      font-family: Arial, sans-serif;
+      background: #f0f2f5;
+      margin: 0;
+      padding: 0;
+    }
+    .header {
+      background: #007bff;
+      color: #fff;
+      padding: 16px;
+      font-size: 20px;
+      font-weight: bold;
+    }
+    .container {
+      max-width: 1100px;
+      margin: 20px auto;
+      background: #fff;
+      padding: 20px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      border-radius: 8px;
+    }
+    h2 {
+      margin-top: 0;
+      color: #333;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    th, td {
+      padding: 10px;
+      border-bottom: 1px solid #ddd;
+      text-align: left;
+    }
+    th {
+      background: #eee;
+    }
+    .logout-btn {
+      float: right;
+      background: #dc3545;
+      padding: 8px 14px;
+      border-radius: 6px;
+      color: white;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
 
-<div class="panel">
-  <h2>Admin Panel</h2>
-
-  <!-- Existing user management -->
-  <div class="section">
-    <label>Telegram ID</label>
-    <input id="tgid" type="text" placeholder="e.g., 6824787323">
-
-    <div class="flex-between">
-      <button id="checkUser" class="primary">Check User</button>
-      <div style="font-size:13px;color:#666">Quick lookup and coin adjust</div>
-    </div>
-
-    <label>Current Balance</label>
-    <div id="balance" class="value">—</div>
-
-    <label>VIP Tier</label>
-    <div id="vip" class="value">—</div>
-
-    <label>Coin Amount</label>
-    <input id="amount" type="number" placeholder="e.g., 1000">
-
-    <div class="row">
-      <button id="addCoins" class="green">Add Coins</button>
-      <button id="removeCoins" class="red">Remove Coins</button>
-    </div>
-  </div>
-
-  <!-- Create account request -->
-  <div class="section">
-    <h3 style="margin-top:0">Create Account (request)</h3>
-    <div class="small">Create request will be queued in Firestore. Run your local worker to process and create the Auth user.</div>
-
-    <label>Telegram ID (username)</label>
-    <input id="new_tgid" type="text" placeholder="e.g., 6824787323">
-
-    <label>Password (admin sets)</label>
-    <input id="new_password" type="text" placeholder="e.g., AC112211">
-
-    <label>Initial Coins</label>
-    <input id="new_coins" type="number" placeholder="e.g., 1000">
-
-    <div class="row" style="margin-top:6px">
-      <button id="createRequest" class="primary" style="flex:1">Create Account (request)</button>
-    </div>
-
-    <div class="small">After creating request, run your local worker to process it (or it will be processed automatically if your worker is running).</div>
-  </div>
-
-  <!-- Reports + RTP -->
-  <div class="section">
-    <h3 style="margin-top:0">Reports & RTP</h3>
-    <div class="small">Admin-only daily reports. Pick a date and click Run to show totals and RTP.</div>
-
-    <label>From (date)</label>
-    <input id="report_from" type="date">
-    <label>To (date)</label>
-    <input id="report_to" type="date">
-
-    <div class="row">
-      <button id="runReport" class="primary" style="flex:1">Run Report</button>
-    </div>
-
-    <div id="reportResult" class="small">—</div>
-    <div id="rtp">RTP: —</div>
-  </div>
-
-  <div id="status" class="status">Status: —</div>
+<div class="header">
+  AsiaTiger — Admin Panel
+  <span id="logoutBtn" class="logout-btn">Logout</span>
 </div>
 
-<!-- Firebase SDKs -->
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+<div class="container">
+  <h2>Admin Dashboard</h2>
+  <p>Status: <span id="status">Loading...</span></p>
 
-<script>
-  const firebaseConfig = {
-    apiKey: "AIzaSyDXGN7xdSPFW2Bj_W0WHauUabpcWQKtYKM",
-    authDomain: "asiatiger-c41d3.firebaseapp.com",
-    projectId: "asiatiger-c41d3",
-    storageBucket: "asiatiger-c41d3.firebasestorage.app",
-    messagingSenderId: "595368304934",
-    appId: "1:595368304934:web:ae946ffe0e28e8758261e7"
-  };
+  <h3>WavePay / KBZPay Reports</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>User ID</th>
+        <th>Amount</th>
+        <th>Payment Method</th>
+        <th>Screenshot</th>
+        <th>Time</th>
+      </tr>
+    </thead>
+    <tbody id="reportTable"></tbody>
+  </table>
+</div>
 
-  firebase.initializeApp(firebaseConfig);
-  const auth = firebase.auth();
-  const db = firebase.firestore();
+<script type="module">
+  // 🔥 IMPORT FIREBASE AUTH & FIRESTORE
+  import { auth, db, requireAdmin } from './auth.js';
+  import {
+    collection,
+    getDocs,
+    query,
+    orderBy
+  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  import { signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
-  const statusEl = document.getElementById("status");
+  // 1️⃣ PROTECT PAGE
+  requireAdmin(); // Auto redirect if not admin
 
-  // Auth gate: only admin users (with custom claim 'admin') can use this panel
-  auth.onAuthStateChanged(async user => {
-    if (!user) { window.location.href = "login.html"; return; }
-    const token = await user.getIdTokenResult(true);
-    if (!token.claims.admin) { alert("Access denied: Admin only"); window.location.href = "login.html"; }
-  });
-
-  async function logAdminAction(adminEmail, tgid, action, amount, prev, next) {
-    await db.collection("admin_logs").add({
-      admin_email: adminEmail,
-      tgid,
-      action,
-      amount,
-      prev_balance: prev,
-      new_balance: next,
-      timestamp: firebase.firestore.FieldValue.serverTimestamp()
-    });
-  }
-
-  function tierFrom(balance) {
-    if (balance >= 500000) return "Platinum";
-    if (balance >= 100000) return "Gold";
-    if (balance >= 30000) return "Silver";
-    if (balance >= 5000) return "Bronze";
-    return "Bronze";
-  }
-
-  async function updateCoins(deltaSign) {
-    const tgid = document.getElementById("tgid").value.trim();
-    const amountInput = document.getElementById("amount").value;
-    const amount = parseInt(amountInput, 10);
-    if (!tgid) { statusEl.textContent = "Status: Enter a Telegram ID"; return; }
-    if (!amountInput || isNaN(amount) || amount <= 0) {
-      statusEl.innerHTML = 'Status: <span class="danger">Enter a positive integer amount</span>';
-      return;
-    }
-
-    const delta = deltaSign > 0 ? amount : -amount;
-
+  // 2️⃣ LOAD REPORTS
+  async function loadReports() {
+    document.getElementById('status').textContent = "Loading reports...";
     try {
-      statusEl.textContent = "Status: Processing...";
-      const ref = db.collection("users").doc(tgid);
-      const snap = await ref.get();
-      const data = snap.exists ? snap.data() : {};
-      const current = typeof data.coin_balance === "number" ? data.coin_balance : 0;
-      const next = current + delta;
-      if (next < 0) { statusEl.innerHTML = 'Status: <span class="danger">Negative balance not allowed</span>'; return; }
+      const q = query(
+        collection(db, "reports"),
+        orderBy("time", "desc")
+      );
+      const snap = await getDocs(q);
 
-      if (!snap.exists || typeof data.coin_balance !== "number") {
-        await ref.set({ coin_balance: current, vip_tier: tierFrom(current) }, { merge: true });
-      }
-
-      await ref.update({ coin_balance: firebase.firestore.FieldValue.increment(delta) });
-
-      let after = await ref.get();
-      let updatedBalance = after.data().coin_balance;
-      let newTier = tierFrom(updatedBalance);
-
-      if (delta > 0 && (newTier === "Gold" || newTier === "Platinum")) {
-        const bonus = Math.floor(amount * 0.05);
-        if (bonus > 0) {
-          await ref.update({ coin_balance: firebase.firestore.FieldValue.increment(bonus) });
-          after = await ref.get();
-          updatedBalance = after.data().coin_balance;
-          newTier = tierFrom(updatedBalance);
-          if (auth.currentUser) {
-            await logAdminAction(auth.currentUser.email, tgid, "bonus", bonus, next, updatedBalance);
-          }
-          statusEl.textContent = `Status: Coins added + ${bonus} bonus`;
-        }
-      } else {
-        statusEl.textContent = `Status: Coins ${delta > 0 ? "added" : "removed"}`;
-      }
-
-      await ref.update({ vip_tier: newTier });
-      document.getElementById("balance").textContent = updatedBalance;
-      document.getElementById("vip").textContent = newTier;
-
-      if (auth.currentUser) {
-        await logAdminAction(auth.currentUser.email, tgid, delta > 0 ? "add" : "remove", Math.abs(amount), current, updatedBalance);
-      }
-    } catch (e) {
-      console.error(e);
-      statusEl.innerHTML = 'Status: <span class="danger">Error updating coins</span>';
-    }
-  }
-
-  document.getElementById("addCoins").addEventListener("click", () => updateCoins(+1));
-  document.getElementById("removeCoins").addEventListener("click", () => updateCoins(-1));
-  document.getElementById("checkUser").addEventListener("click", async () => {
-    const tgid = document.getElementById("tgid").value.trim();
-    if (!tgid) return;
-    const doc = await db.collection("users").doc(tgid).get();
-    if (doc.exists) {
-      const d = doc.data();
-      document.getElementById("balance").textContent = d.coin_balance ?? 0;
-      document.getElementById("vip").textContent = d.vip_tier ?? "Bronze";
-      statusEl.textContent = "Status: User found";
-    } else {
-      document.getElementById("balance").textContent = "—";
-      document.getElementById("vip").textContent = "—";
-      statusEl.textContent = "Status: No user found";
-    }
-  });
-
-  document.getElementById("createRequest").addEventListener("click", async () => {
-    const tgid = document.getElementById("new_tgid").value.trim();
-    const password = document.getElementById("new_password").value;
-    const coinsInput = document.getElementById("new_coins").value;
-    const initialCoins = parseInt(coinsInput || "0", 10);
-
-    if (!tgid) { statusEl.textContent = "Status: Enter Telegram ID for new account"; return; }
-    if (!password) { statusEl.textContent = "Status: Enter a password to set for the user"; return; }
-    if (isNaN(initialCoins) || initialCoins < 0) { statusEl.textContent = "Status: Enter a valid initial coin amount"; return; }
-
-    try {
-      statusEl.textContent = "Status: Creating request...";
-      const reqRef = await db.collection("admin_requests").add({
-        type: "create_user",
-        tgid: String(tgid),
-        password: password,
-        initial_coins: initialCoins,
-        status: "pending",
-        created_by: auth.currentUser ? auth.currentUser.email : "admin",
-        created_at: firebase.firestore.FieldValue.serverTimestamp()
-      });
-
-      statusEl.textContent = `Status: Request queued (id: ${reqRef.id}). Run worker to process.`;
-      document.getElementById("new_tgid").value = "";
-      document.getElementById("new_password").value = "";
-      document.getElementById("new_coins").value = "";
-    } catch (e) {
-      console.error(e);
-      statusEl.innerHTML = 'Status: <span class="danger">Error creating request</span>';
-    }
-  });
-
-  // -------------------------
-  // Reports: collectionGroup sum (admin only)
-  // -------------------------
-  async function runReport() {
-    const fromVal = document.getElementById('report_from').value;
-    const toVal = document.getElementById('report_to').value;
-    if (!fromVal || !toVal) { document.getElementById('reportResult').textContent = 'Pick both dates'; return; }
-    const from = new Date(fromVal); from.setHours(0,0,0,0);
-    const to = new Date(toVal); to.setHours(23,59,59,999);
-
-    try {
-      statusEl.textContent = 'Status: Running report...';
-      // Try to read precomputed report if exists (fast)
-      if (fromVal === toVal) {
-        const doc = await db.collection('reports').doc(`daily_${fromVal}`).get();
-        if (doc.exists) {
-          const d = doc.data();
-          document.getElementById('reportResult').textContent = `In: ${d.total_in||0}  Out: ${d.total_out||0}  Tx: ${d.tx_count||0}`;
-          // show RTP if totals available
-          const totalBet = d.total_bet || 0;
-          const totalPayout = d.total_payouts || d.total_in || 0;
-          const rtp = totalBet ? (totalPayout / totalBet) * 100 : 0;
-          document.getElementById('rtp').textContent = `RTP: ${rtp.toFixed(2)}%  Bet:${totalBet} Payout:${totalPayout}`;
-          statusEl.textContent = 'Status: Report loaded';
-          return;
-        }
-      }
-
-      // Fallback: collectionGroup query (may require index)
-      const q = db.collectionGroup('game_tx')
-        .where('ts', '>=', firebase.firestore.Timestamp.fromDate(from))
-        .where('ts', '<=', firebase.firestore.Timestamp.fromDate(to));
-      const snap = await q.get();
-      let totalIn = 0, totalOut = 0, totalBet = 0;
+      let html = "";
       snap.forEach(doc => {
         const d = doc.data();
-        const win = Number(d.win || 0);
-        const bet = Number(d.bet || 0);
-        if (win >= 0) totalIn += win; else totalOut += Math.abs(win);
-        totalBet += bet || 0;
+        html += `
+          <tr>
+            <td>${d.userId || "-"}</td>
+            <td>${d.amount || 0}</td>
+            <td>${d.method || "-"}</td>
+            <td>${d.imageUrl ? `<a href="${d.imageUrl}" target="_blank">View</a>` : "-"}</td>
+            <td>${d.time?.seconds ? new Date(d.time.seconds * 1000).toLocaleString() : "-"}</td>
+          </tr>
+        `;
       });
-      document.getElementById('reportResult').textContent = `In: ${totalIn}  Out: ${totalOut}  Tx: ${snap.size}`;
-      const rtp = totalBet ? (totalIn / totalBet) * 100 : 0;
-      document.getElementById('rtp').textContent = `RTP: ${rtp.toFixed(2)}%  Bet:${totalBet} Payout:${totalIn}`;
-      statusEl.textContent = 'Status: Report complete';
-    } catch (e) {
-      console.error(e);
-      document.getElementById('reportResult').textContent = 'Error running report';
-      document.getElementById('rtp').textContent = 'RTP: —';
-      statusEl.textContent = 'Status: Error';
+
+      document.getElementById('reportTable').innerHTML = html;
+      document.getElementById('status').textContent = "Loaded ✔";
+
+    } catch (err) {
+      console.error(err);
+      document.getElementById('status').textContent = "Failed to load";
     }
   }
 
-  document.getElementById('runReport').addEventListener('click', runReport);
+  loadReports();
+
+  // 3️⃣ LOGOUT
+  document.getElementById("logoutBtn").addEventListener("click", async () => {
+    await signOut(auth);
+    window.location.href = "login.html";
+  });
 </script>
 
 </body>

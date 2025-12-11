@@ -3,11 +3,31 @@
   "version": "1.0.0",
   "type": "module",
   "dependencies": {
-    "firebase-admin": "^11.10.0",
-    "google-gax": "^4.3.3",
     "@grpc/grpc-js": "^1.10.0",
     "@grpc/proto-loader": "^0.7.10",
-    "protobufjs": "^7.2.4",
-    "node-fetch": "^3.3.2"
-  }
+    "body-parser": "^2.2.1",
+    "cors": "^2.8.5",
+    "express": "^5.2.1",
+    "firebase": "^12.6.0",
+    "firebase-admin": "^11.11.1",
+    "google-gax": "^4.3.3",
+    "node-fetch": "^3.3.2",
+    "protobufjs": "^7.2.4"
+  },
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ayechanaung12723-star/asiatiger-web.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/ayechanaung12723-star/asiatiger-web/issues"
+  },
+  "homepage": "https://github.com/ayechanaung12723-star/asiatiger-web#readme"
 }

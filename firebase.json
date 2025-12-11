@@ -1,0 +1,21 @@
+{
+  "hosting": {
+    "public": ".",
+    "site": "asiatiger-c41d3",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "/admin.html",
+        "destination": "/admin.html"
+      },
+      {
+        "source": "/login.html",
+        "destination": "/login.html"
+      }
+    ]
+  }
+}
